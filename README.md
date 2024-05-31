@@ -55,10 +55,10 @@ or by running main
 !giveaway create <title> <duration> <number_of_winners> [<channel_id>] 
 ```  
 
-<title>: The unique title for the giveaway;  
-<duration>: The duration of the giveaway (e.g., 1h for 1 hour, 30m for 30 minutes, 2d for 2 days) -> use m for minutes, h for hours and d for days;  
-<number_of_winners>: The number of winners for the giveaway;  
-[<channel_id>] (optional): The ID of the channel where the giveaway will be announced. If not provided, the current channel will be used.  
+title: The unique title for the giveaway;  
+duration: The duration of the giveaway (e.g., 1h for 1 hour, 30m for 30 minutes, 2d for 2 days) -> use m for minutes, h for hours and d for days;  
+number_of_winners: The number of winners for the giveaway;  
+channel_id (optional): The ID of the channel where the giveaway will be announced. If not provided, the current channel will be used.  
 
 
 ### Example:  
