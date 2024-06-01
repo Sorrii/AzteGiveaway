@@ -16,7 +16,7 @@ AzteGiveaway Bot is a Discord bot for creating and managing giveaways in Discord
 - Java Development Kit (JDK) 8 or later  
 - Maven  
 - A Discord bot token  
-- A PostgreSQL database (optional for storing winners and entries)  
+- A PostgreSQL database (optional for storing winners, entries and giveaway history)  
 
 ## Setup  
 
@@ -74,6 +74,8 @@ If no users entry the giveaway, a specific message will be sent ("The giveaway h
 Users can enter the giveaway by reacting with the 🎉 emoji to the giveaway message.  
 
 ### Actions and errors are logged using SLF4J logger.   
+
+
 
 
 
