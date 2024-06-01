@@ -1,6 +1,5 @@
 package models;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,11 +7,11 @@ public class Giveaway {
     private final long messageId;
     private final String title;
     private final int numberOfWinners;
-    private final Duration duration;
+    private final long duration;
     private final long channelId;
     private final List<Long> entries = new ArrayList<>();
 
-    public Giveaway(long messageId, String title, int numberOfWinners, Duration duration, long channelId) {
+    public Giveaway(long messageId, String title, int numberOfWinners, long duration, long channelId) {
         this.messageId = messageId;
         this.title = title;
         this.numberOfWinners = numberOfWinners;
@@ -42,7 +41,7 @@ public class Giveaway {
         return numberOfWinners;
     }
 
-    public Duration getDuration() {
+    public long getDuration() {
         return duration;
     }
 

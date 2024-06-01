@@ -16,16 +16,16 @@ public class DurationParser {
      * @return A Duration object representing the parsed duration
      * @throws IllegalArgumentException if the duration string is invalid
      */
-    public static Duration parseDuration(String durationStr) {
+    public static long parseDuration(String durationStr) {
         if (durationStr.endsWith("h")) {
             long hours = Long.parseLong(durationStr.replace("h", ""));
-            return Duration.of(hours, ChronoUnit.HOURS);
+            return Duration.of(hours, ChronoUnit.HOURS).toMillis();
         } else if (durationStr.endsWith("m")) {
             long minutes = Long.parseLong(durationStr.replace("m", ""));
-            return Duration.of(minutes, ChronoUnit.MINUTES);
+            return Duration.of(minutes, ChronoUnit.MINUTES).toMillis();
         } else if (durationStr.endsWith("d")) {
             long days = Long.parseLong(durationStr.replace("d", ""));
-            return Duration.of(days, ChronoUnit.DAYS);
+            return Duration.of(days, ChronoUnit.DAYS).toMillis();
         } else {
             throw new IllegalArgumentException("Invalid duration format");
         }

@@ -1,8 +1,3 @@
-/**
- * This class represents a command to create a giveaway.
- * The command is in the format: !giveaway create <title> <duration> <number_of_winners> [<channel_id>]
- */
-
 package commands;
 
 import models.Giveaway;
@@ -10,29 +5,35 @@ import utils.FairRandomizer;
 import utils.DurationParser;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GiveawayCommand extends ListenerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GiveawayCommand.class);
-    private static final Map<Long, Giveaway> activeGiveaways = new HashMap<>();
+    private static final Map<Long, Giveaway> activeGiveaways = new ConcurrentHashMap<>();
 
     @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
-        String[] args = event.getMessage().getContentRaw().split(" ");
-        if (args.length > 1 && args[0].equalsIgnoreCase("!giveaway") && args[1].equalsIgnoreCase("create")) {
-            handleCreateCommand(event, args);
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if ("giveaway".equals(event.getName())) {
+            String subcommand = event.getSubcommandName();
+            if (Objects.equals(subcommand, "create")) {
+                handleCreateCommand(event);
+            } else {
+                event.reply("Unknown subcommand: " + subcommand).setEphemeral(true).queue();
+            }
+        } else {
+            event.reply("Unknown command: " + event.getName()).setEphemeral(true).queue();
         }
     }
 
@@ -50,92 +51,70 @@ public class GiveawayCommand extends ListenerAdapter {
         if (activeGiveaways.containsKey(messageId)) {
             Giveaway giveaway = activeGiveaways.get(messageId);
             if (giveaway.getEntries().contains(event.getUserIdLong())) {
-                LOGGER.info("User with ID {} has already entered the giveaway entitled {}", event.getUserIdLong(), giveaway.getTitle());
+                LOGGER.info("User with ID {} has already entered the giveaway titled {}", event.getUserIdLong(), giveaway.getTitle());
                 return;
             }
             giveaway.addEntry(event.getUserIdLong());
-            LOGGER.info("User with ID {} entered the giveaway entitled{}", event.getUserIdLong(), giveaway.getTitle());
+            LOGGER.info("User with ID {} entered the giveaway titled {}", event.getUserIdLong(), giveaway.getTitle());
         } else {
             LOGGER.warn("No active giveaway found for message ID {}", messageId);
         }
     }
 
-    public static void handleCreateCommand(MessageReceivedEvent event, String[] args) {
-        if (args.length < 5) {
-            event.getChannel().sendMessage("Usage: !giveaway create <title> <duration> <number_of_winners> [<channel_id>]").queue();
-            return;
-        }
+    private void handleCreateCommand(SlashCommandInteractionEvent event) {
+        // Get the options and check if null
+        final String title = Optional.ofNullable(event.getOption("title"))
+                .map(OptionMapping::getAsString)
+                .orElse(null);
 
-        // We first check whether the user has the ADMINISTRATOR permission
-        if (event.getMember() == null) {
-            event.getChannel().sendMessage("You do not have permission to use that command!").queue();
-            return;
-        }
+        final String durationStr = Optional.ofNullable(event.getOption("duration"))
+                .map(OptionMapping::getAsString)
+                .orElse(null);
 
-        List<Role> roles = event.getMember().getRoles();
-        boolean isAdmin = roles.stream().anyMatch(role -> role.getPermissions().contains(net.dv8tion.jda.api.Permission.ADMINISTRATOR));
+        final Integer numberOfWinners = Optional.ofNullable(event.getOption("winners"))
+                .map(OptionMapping::getAsInt)
+                .orElse(null);
 
-        // If the user is not an admin, we send a message and return
-        if (!isAdmin) {
-            event.getChannel().sendMessage("You do not have permission to use that command!").queue();
-            return;
-        }
+        // Initialize textChannel to null initially
+        final TextChannel textChannel;
 
-        // Check if a giveaway with the same title already exists. Titles are unique so we can use them as identifiers
-        String title = args[2];
-        if (activeGiveaways.values().stream().anyMatch(g -> g.getTitle().equalsIgnoreCase(title))) {
-            event.getChannel().sendMessage("A giveaway with this title already exists. Please choose a unique title.").queue();
-            return;
-        }
-
-        String durationStr = args[3];
-        int numberOfWinners;
-        long channelId;
-        TextChannel textChannel;
-
-        // Ensure the number of winners is a positive NUMBER
-        try {
-            numberOfWinners = Integer.parseInt(args[4]);
-            if (numberOfWinners <= 0) {
-                event.getChannel().sendMessage("The number of winners must be a positive number.").queue();
-                return;
-            }
-        } catch (NumberFormatException e) {
-            event.getChannel().sendMessage("Invalid number of winners. Please provide a valid positive number.").queue();
-            return;
-        }
-
-        // Ensure the channel ID is a valid LONG
-        if (args.length >= 6) {
-            try {
-                channelId = Long.parseLong(args[5]);
-                // Check if the channel ID exists in the server
-                textChannel = event.getGuild().getTextChannelById(channelId);
-                if (textChannel == null) {
-                    event.getChannel().sendMessage("The provided channel ID does not exist in this server.").queue();
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                event.getChannel().sendMessage("Invalid channel ID. Please provide a valid channel ID.").queue();
-                return;
-            }
+        if (event.getOption("channel") != null) {
+            textChannel = Objects.requireNonNull(event.getOption("channel")).getAsChannel().asTextChannel();
         } else {
             textChannel = (TextChannel) event.getChannel();
         }
 
+        // Ensure all required options are present
+        if (title == null || durationStr == null || numberOfWinners == null) {
+            event.reply("Missing required options: title, duration, or winners.").setEphemeral(true).queue();
+            return;
+        }
+
+        // Ensure the user has the ADMINISTRATOR permission
+        if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
+            event.reply("You do not have permission to use that command!").setEphemeral(true).queue();
+            return;
+        }
+
+        // Check if a giveaway with the same title already exists. Titles are unique so we can use them as identifiers
+        if (activeGiveaways.values().stream().anyMatch(g -> g.getTitle().equalsIgnoreCase(title))) {
+            event.reply("A giveaway with this title already exists. Please choose a unique title.").setEphemeral(true).queue();
+            return;
+        }
+
         // Validate duration format
-        Duration duration;
+        long duration;
         try {
             duration = DurationParser.parseDuration(durationStr);
         } catch (IllegalArgumentException e) {
-            event.getChannel().sendMessage("Invalid duration format. Use formats like '1h', '30m', '2d'.").queue();
+            event.reply("Invalid duration format. Use formats like '1h', '30m', '2d'.").setEphemeral(true).queue();
             return;
         }
 
         // Announce the giveaway in the specified channel
-        textChannel.sendMessage("Giveaway created! Title: " + title + ", Duration: " + durationStr + ", Winners: " + numberOfWinners)
+        textChannel.sendMessage("Giveaway created! Title: " + title + ", Duration: " + durationStr + ", Number of winners: " + numberOfWinners)
                 .queue(message -> {
-                    message.addReaction(Emoji.fromUnicode("🎉")).queue(); // Add a reaction to the message for users to enter
+                    message.addReaction(Emoji.fromUnicode("🎉")).queue();
                     Giveaway giveaway = new Giveaway(message.getIdLong(), title, numberOfWinners, duration, textChannel.getIdLong());
                     activeGiveaways.put(message.getIdLong(), giveaway);
                     LOGGER.info("Giveaway with title: {} stored with message ID: {}", title, message.getIdLong());
@@ -146,13 +125,14 @@ public class GiveawayCommand extends ListenerAdapter {
                         public void run() {
                             endGiveaway(giveaway, message.getJDA());
                         }
-                    }, duration.toMillis());
+                    }, duration);
                 });
 
+        event.reply("Giveaway created successfully!").setEphemeral(true).queue();
         LOGGER.info("Giveaway created with title: {}, duration: {}, and winners: {}", title, durationStr, numberOfWinners);
     }
 
-    private static void endGiveaway(Giveaway giveaway, JDA jda) {
+    private void endGiveaway(Giveaway giveaway, JDA jda) {
         TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
         if (textChannel == null) {
             LOGGER.error("Channel not found for giveaway: {}", giveaway.getMessageId());
