@@ -1,11 +1,13 @@
-package commands;
-
 /**
  * This class represents a command to create a giveaway.
  * The command is in the format: !giveaway create <title> <duration> <number_of_winners> [<channel_id>]
  */
 
+package commands;
+
 import models.Giveaway;
+import utils.FairRandomizer;
+import utils.DurationParser;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Role;
@@ -19,14 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class GiveawayCommand extends ListenerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GiveawayCommand.class);
     private static final Map<Long, Giveaway> activeGiveaways = new HashMap<>();
-    private static final Random RANDOM = new Random();
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
@@ -126,7 +126,7 @@ public class GiveawayCommand extends ListenerAdapter {
         // Validate duration format
         Duration duration;
         try {
-            duration = parseDuration(durationStr);
+            duration = DurationParser.parseDuration(durationStr);
         } catch (IllegalArgumentException e) {
             event.getChannel().sendMessage("Invalid duration format. Use formats like '1h', '30m', '2d'.").queue();
             return;
@@ -152,21 +152,6 @@ public class GiveawayCommand extends ListenerAdapter {
         LOGGER.info("Giveaway created with title: {}, duration: {}, and winners: {}", title, durationStr, numberOfWinners);
     }
 
-    private static Duration parseDuration(String durationStr) {
-        if (durationStr.endsWith("h")) {
-            long hours = Long.parseLong(durationStr.replace("h", ""));
-            return Duration.of(hours, ChronoUnit.HOURS);
-        } else if (durationStr.endsWith("m")) {
-            long minutes = Long.parseLong(durationStr.replace("m", ""));
-            return Duration.of(minutes, ChronoUnit.MINUTES);
-        } else if (durationStr.endsWith("d")) {
-            long days = Long.parseLong(durationStr.replace("d", ""));
-            return Duration.of(days, ChronoUnit.DAYS);
-        } else {
-            throw new IllegalArgumentException("Invalid duration format");
-        }
-    }
-
     private static void endGiveaway(Giveaway giveaway, JDA jda) {
         TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
         if (textChannel == null) {
@@ -180,11 +165,7 @@ public class GiveawayCommand extends ListenerAdapter {
             return;
         }
 
-        List<Long> winners = new ArrayList<>();
-        for (int i = 0; i < giveaway.getNumberOfWinners() && !entries.isEmpty(); i++) {
-            int winnerIndex = RANDOM.nextInt(entries.size());
-            winners.add(entries.remove(winnerIndex));
-        }
+        List<Long> winners = FairRandomizer.selectWinners(entries, giveaway.getNumberOfWinners());
 
         StringBuilder winnerMessage = new StringBuilder("The giveaway has ended! Congratulations to the winners:\n");
         for (Long winnerId : winners) {
