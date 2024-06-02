@@ -1,9 +1,8 @@
 package commands;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import org.example.entities.GiveawayEntity;
-import org.example.entities.WinnerEntity;
 
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -20,10 +19,11 @@ import org.springframework.stereotype.Component;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
 
-import utils.FairRandomizer;
 import utils.DurationParser;
+import utils.EmbedUtil;
+import utils.GiveawayUtil;
 
-import java.util.List;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Timer;
@@ -125,54 +125,28 @@ public class GiveawayCommand extends ListenerAdapter {
             return;
         }
 
-        // Create the giveaway
-        textChannel.sendMessage("Giveaway created! Title: " + title + ", Prize: " + prize + ", Duration: " + durationStr + ", Number of winners: " + numberOfWinners)
-                .queue(message -> {
-                    message.addReaction(Emoji.fromUnicode("🎉")).queue();
-                    GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, numberOfWinners, DurationParser.parseDuration(durationStr), textChannel.getIdLong());
-                    giveawayService.createGiveaway(giveaway);
+        // Calculate end time
+        long durationMillis = DurationParser.parseDuration(durationStr);
+        Instant endTime = Instant.now().plusMillis(durationMillis);
 
-                    // Schedule the giveaway end
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            endGiveaway(giveaway, message.getJDA());
-                        }
-                    }, DurationParser.parseDuration(durationStr));
-                });
+        // Create the giveaway embed
+        EmbedBuilder embedBuilder = EmbedUtil.createGiveawayEmbed(title, prize, durationStr, numberOfWinners, endTime);
+
+        textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
+            message.addReaction(Emoji.fromUnicode("🎉")).queue();
+            GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, numberOfWinners, durationMillis, textChannel.getIdLong());
+            giveawayService.createGiveaway(giveaway);
+
+            // Schedule the giveaway end
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    GiveawayUtil.endGiveaway(giveaway, message.getJDA(), message.getIdLong(), giveawayService, winnerService);
+                }
+            }, durationMillis);
+        });
 
         event.reply("Giveaway created successfully!").setEphemeral(true).queue();
         LOGGER.info("Giveaway created with title: {}, duration: {}, and winners: {}", title, durationStr, numberOfWinners);
-    }
-
-    private void endGiveaway(GiveawayEntity giveaway, JDA jda) {
-        giveaway = giveawayService.getGiveawayByMessageId(giveaway.getMessageId()); // reload with updated entries
-        LOGGER.info("Entries: {}", giveaway.getEntries());
-
-        List<Long> winners = FairRandomizer.selectWinners(giveaway.getEntries(), giveaway.getNumberOfWinners());
-        LOGGER.info("Selected winners for giveaway {}: {}", giveaway.getEntries(), winners);
-
-        TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
-        if (textChannel == null) {
-            LOGGER.error("Channel not found for giveaway: {}", giveaway.getMessageId());
-            return;
-        }
-
-        if (winners.isEmpty()) {
-            textChannel.sendMessage("The giveaway has ended, but there were no entries.").queue();
-            giveawayService.deleteGiveaway(giveaway.getId());
-            return;
-        }
-
-        StringBuilder winnerMessage = new StringBuilder("The giveaway has ended! Congratulations to the winners:\n");
-        for (Long winnerId : winners) {
-            winnerMessage.append("<@").append(winnerId).append(">\n");
-            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), winnerId));
-        }
-
-        textChannel.sendMessage(winnerMessage.toString()).queue();
-        giveawayService.deleteGiveaway(giveaway.getId());
-
-        LOGGER.info("Giveaway {} has ended!", giveaway.getTitle());
     }
 }
