@@ -1,27 +1,47 @@
 package commands;
 
-import models.Giveaway;
-import utils.FairRandomizer;
-import utils.DurationParser;
+import org.example.entities.GiveawayEntity;
+import org.example.entities.WinnerEntity;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import org.example.services.GiveawayService;
+import org.example.services.WinnerService;
+
+import utils.FairRandomizer;
+import utils.DurationParser;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
+
+@Component
 public class GiveawayCommand extends ListenerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GiveawayCommand.class);
-    private static final Map<Long, Giveaway> activeGiveaways = new ConcurrentHashMap<>();
+
+    private final GiveawayService giveawayService;
+    private final WinnerService winnerService;
+
+    @Autowired
+    public GiveawayCommand(GiveawayService giveawayService, WinnerService winnerService) {
+        this.giveawayService = giveawayService;
+        this.winnerService = winnerService;
+    }
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
@@ -39,31 +59,34 @@ public class GiveawayCommand extends ListenerAdapter {
 
     @Override
     public void onMessageReactionAdd(MessageReactionAddEvent event) {
-        LOGGER.info("Reaction added by user: {}", event.getUserIdLong());
-
         if (event.getUser() != null && event.getUser().isBot()) {
-            LOGGER.info("Ignored bot reaction");
-            return;
+            return; // Ignore bot reactions
         }
 
         long messageId = event.getMessageIdLong();
-        LOGGER.info("User with ID {} reacted to message ID {}", event.getUserIdLong(), messageId);
-        if (activeGiveaways.containsKey(messageId)) {
-            Giveaway giveaway = activeGiveaways.get(messageId);
-            if (giveaway.getEntries().contains(event.getUserIdLong())) {
-                LOGGER.info("User with ID {} has already entered the giveaway titled {}", event.getUserIdLong(), giveaway.getTitle());
-                return;
+        GiveawayEntity giveaway = giveawayService.getGiveawayByMessageId(messageId);
+
+        if (giveaway != null) {
+            long userId = event.getUserIdLong();
+            if (!giveaway.getEntries().contains(userId)) {
+                giveaway.addEntry(userId);
+                giveawayService.updateGiveaway(giveaway);  // Update the giveaway with the new entry
+                LOGGER.info("User with ID {} entered the giveaway with title: {}", userId, giveaway.getTitle());
+            } else {
+                LOGGER.info("User with ID {} has already entered the giveaway with title: {}", userId, giveaway.getTitle());
             }
-            giveaway.addEntry(event.getUserIdLong());
-            LOGGER.info("User with ID {} entered the giveaway titled {}", event.getUserIdLong(), giveaway.getTitle());
-        } else {
-            LOGGER.warn("No active giveaway found for message ID {}", messageId);
+
+            LOGGER.info("Entries for giveaway: {}", giveaway.getEntries());
         }
     }
 
     private void handleCreateCommand(SlashCommandInteractionEvent event) {
         // Get the options and check if null
         final String title = Optional.ofNullable(event.getOption("title"))
+                .map(OptionMapping::getAsString)
+                .orElse(null);
+
+        final String prize = Optional.ofNullable(event.getOption("prize"))
                 .map(OptionMapping::getAsString)
                 .orElse(null);
 
@@ -85,8 +108,8 @@ public class GiveawayCommand extends ListenerAdapter {
         }
 
         // Ensure all required options are present
-        if (title == null || durationStr == null || numberOfWinners == null) {
-            event.reply("Missing required options: title, duration, or winners.").setEphemeral(true).queue();
+        if (title == null || prize == null || durationStr == null || numberOfWinners == null) {
+            event.reply("Missing required options: title, prize, duration, or winners.").setEphemeral(true).queue();
             return;
         }
 
@@ -97,27 +120,17 @@ public class GiveawayCommand extends ListenerAdapter {
         }
 
         // Check if a giveaway with the same title already exists. Titles are unique so we can use them as identifiers
-        if (activeGiveaways.values().stream().anyMatch(g -> g.getTitle().equalsIgnoreCase(title))) {
+        if (giveawayService.getGiveawayByTitle(title) != null) {
             event.reply("A giveaway with this title already exists. Please choose a unique title.").setEphemeral(true).queue();
             return;
         }
 
-        // Validate duration format
-        long duration;
-        try {
-            duration = DurationParser.parseDuration(durationStr);
-        } catch (IllegalArgumentException e) {
-            event.reply("Invalid duration format. Use formats like '1h', '30m', '2d'.").setEphemeral(true).queue();
-            return;
-        }
-
-        // Announce the giveaway in the specified channel
-        textChannel.sendMessage("Giveaway created! Title: " + title + ", Duration: " + durationStr + ", Number of winners: " + numberOfWinners)
+        // Create the giveaway
+        textChannel.sendMessage("Giveaway created! Title: " + title + ", Prize: " + prize + ", Duration: " + durationStr + ", Number of winners: " + numberOfWinners)
                 .queue(message -> {
                     message.addReaction(Emoji.fromUnicode("🎉")).queue();
-                    Giveaway giveaway = new Giveaway(message.getIdLong(), title, numberOfWinners, duration, textChannel.getIdLong());
-                    activeGiveaways.put(message.getIdLong(), giveaway);
-                    LOGGER.info("Giveaway with title: {} stored with message ID: {}", title, message.getIdLong());
+                    GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, numberOfWinners, DurationParser.parseDuration(durationStr), textChannel.getIdLong());
+                    giveawayService.createGiveaway(giveaway);
 
                     // Schedule the giveaway end
                     new Timer().schedule(new TimerTask() {
@@ -125,35 +138,40 @@ public class GiveawayCommand extends ListenerAdapter {
                         public void run() {
                             endGiveaway(giveaway, message.getJDA());
                         }
-                    }, duration);
+                    }, DurationParser.parseDuration(durationStr));
                 });
 
         event.reply("Giveaway created successfully!").setEphemeral(true).queue();
         LOGGER.info("Giveaway created with title: {}, duration: {}, and winners: {}", title, durationStr, numberOfWinners);
     }
 
-    private void endGiveaway(Giveaway giveaway, JDA jda) {
+    private void endGiveaway(GiveawayEntity giveaway, JDA jda) {
+        giveaway = giveawayService.getGiveawayByMessageId(giveaway.getMessageId()); // reload with updated entries
+        LOGGER.info("Entries: {}", giveaway.getEntries());
+
+        List<Long> winners = FairRandomizer.selectWinners(giveaway.getEntries(), giveaway.getNumberOfWinners());
+        LOGGER.info("Selected winners for giveaway {}: {}", giveaway.getEntries(), winners);
+
         TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
         if (textChannel == null) {
             LOGGER.error("Channel not found for giveaway: {}", giveaway.getMessageId());
             return;
         }
 
-        List<Long> entries = giveaway.getEntries();
-        if (entries.isEmpty()) {
+        if (winners.isEmpty()) {
             textChannel.sendMessage("The giveaway has ended, but there were no entries.").queue();
+            giveawayService.deleteGiveaway(giveaway.getId());
             return;
         }
-
-        List<Long> winners = FairRandomizer.selectWinners(entries, giveaway.getNumberOfWinners());
 
         StringBuilder winnerMessage = new StringBuilder("The giveaway has ended! Congratulations to the winners:\n");
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
+            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), winnerId));
         }
 
         textChannel.sendMessage(winnerMessage.toString()).queue();
-        activeGiveaways.remove(giveaway.getMessageId());
+        giveawayService.deleteGiveaway(giveaway.getId());
 
         LOGGER.info("Giveaway {} has ended!", giveaway.getTitle());
     }
