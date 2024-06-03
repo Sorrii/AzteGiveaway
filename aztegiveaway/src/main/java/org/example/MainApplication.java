@@ -1,12 +1,11 @@
 /**
- * MainApplication class is the entry point of the application
- * and is responsible for starting the bot and registering slash commands
- * It also retrieves active giveaways from the database and reschedules them
+ * MainApplication that starts the Spring Boot application and the JDA bot and registers slash commands
+ * It also retrieves and reschedules active giveaways
  */
 
 package org.example;
 
-import commands.GiveawayCommand;
+import commands.*;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,8 +31,6 @@ import utils.GiveawayUtil;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @SpringBootApplication(scanBasePackages = "org.example")
 public class MainApplication {
@@ -60,9 +57,19 @@ public class MainApplication {
         }
 
         try {
+            // Get the services from the Spring context
             GiveawayService giveawayService = context.getBean(GiveawayService.class);
             WinnerService winnerService = context.getBean(WinnerService.class);
+
+            // Initialize the commands
             GiveawayCommand giveawayCommand = new GiveawayCommand(giveawayService, winnerService);
+            RerollCommand rerollCommand = new RerollCommand(giveawayService, winnerService);
+            RollCommand rollCommand = new RollCommand(giveawayService, winnerService);
+            WinnersCommand winnersCommand = new WinnersCommand(winnerService);
+            DeleteCommand deleteCommand = new DeleteCommand(giveawayService);
+
+            // Initialize the slash command listener
+            SlashCommandListener slashCommandListener = new SlashCommandListener(giveawayCommand, rerollCommand, rollCommand, deleteCommand, winnersCommand);
 
             JDA jda = JDABuilder.createDefault(token)
                     .enableIntents(
@@ -70,6 +77,7 @@ public class MainApplication {
                             GatewayIntent.MESSAGE_CONTENT,
                             GatewayIntent.GUILD_MESSAGE_REACTIONS
                     )
+                    .addEventListeners(slashCommandListener)
                     .addEventListeners(giveawayCommand)
                     .build();
 
@@ -82,8 +90,17 @@ public class MainApplication {
                                             .addOption(OptionType.STRING, "prize", "The prize of the giveaway", true)
                                             .addOption(OptionType.STRING, "duration", "The duration of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
                                             .addOption(OptionType.INTEGER, "winners", "The number of winners", true)
-                                            .addOption(OptionType.CHANNEL, "channel", "The channel where the giveaway will be announced", false)
-                            )
+                                            .addOption(OptionType.CHANNEL, "channel", "The channel where the giveaway will be announced", false),
+                                    new SubcommandData("reroll", "Reroll the giveaway")
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true)
+                                            .addOption(OptionType.INTEGER, "number_of_new_winners", "The number of new winners", false),
+                                    new SubcommandData("roll", "Roll the giveaway immediately")
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
+                                    new SubcommandData("delete", "Delete the giveaway")
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
+                                    new SubcommandData("winners", "Get the winners of the giveaway")
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true)
+                                    )
             ).queue();
 
             LOGGER.info("Bot is starting...");
@@ -93,12 +110,7 @@ public class MainApplication {
             for (GiveawayEntity giveaway : activeGiveaways) {
                 long remainingTime = giveaway.getDuration() - (Instant.now().toEpochMilli() - giveaway.getStartTime().toEpochMilli());
                 if (remainingTime > 0) {
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            GiveawayUtil.endGiveaway(giveaway, jda, giveaway.getMessageId(), giveawayService, winnerService);
-                        }
-                    }, remainingTime);
+                    GiveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, remainingTime);
                     LOGGER.info("Rescheduled giveaway {} with remaining time {} ms", giveaway.getTitle(), remainingTime);
                 } else {
                     // If the remaining time is negative or zero, end the giveaway immediately

@@ -1,3 +1,9 @@
+/**
+ * This class represented the initial form of a giveaway.
+ * It contains the message id of the giveaway message, the title of the giveaway, the number of winners, the duration of the giveaway, the channel id of the giveaway message, and a list of user ids that have entered the giveaway.
+ * It is no longer used. Can be omitted!
+ */
+
 package models;
 
 import java.util.ArrayList;

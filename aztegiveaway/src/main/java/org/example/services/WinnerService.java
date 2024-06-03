@@ -27,4 +27,12 @@ public class WinnerService {
     public List<WinnerEntity> getAllWinners() {
         return winnerRepository.findAll();
     }
+
+    public List<WinnerEntity> getWinnersByGiveawayTitle(String title) {
+        return winnerRepository.findByGiveawayTitle(title);
+    }
+
+    public void deleteWinnersByGiveawayTitle(String title) {
+        winnerRepository.deleteByGiveawayTitle(title);
+    }
 }

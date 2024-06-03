@@ -22,5 +22,27 @@ public class WinnerEntity {
         this.userId = userId;
     }
 
-    // Getters and setters...
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getGiveawayTitle() {
+        return giveawayTitle;
+    }
+
+    public void setGiveawayTitle(String giveawayTitle) {
+        this.giveawayTitle = giveawayTitle;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 }

@@ -1,3 +1,10 @@
+/**
+ * Class that handles the giveaway command
+ * This command is used to create a new giveaway
+ * Only users with the ADMINISTRATOR permission can use this command
+ * USAGE: /giveaway create --title "title" --prize "prize" --duration "duration" --winners "winners" [--channel "channel"] <- optional param
+ */
+
 package commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -15,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
 
@@ -26,8 +32,6 @@ import utils.GiveawayUtil;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @Component
 public class GiveawayCommand extends ListenerAdapter {
@@ -41,20 +45,6 @@ public class GiveawayCommand extends ListenerAdapter {
     public GiveawayCommand(GiveawayService giveawayService, WinnerService winnerService) {
         this.giveawayService = giveawayService;
         this.winnerService = winnerService;
-    }
-
-    @Override
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if ("giveaway".equals(event.getName())) {
-            String subcommand = event.getSubcommandName();
-            if (Objects.equals(subcommand, "create")) {
-                handleCreateCommand(event);
-            } else {
-                event.reply("Unknown subcommand: " + subcommand).setEphemeral(true).queue();
-            }
-        } else {
-            event.reply("Unknown command: " + event.getName()).setEphemeral(true).queue();
-        }
     }
 
     @Override
@@ -80,7 +70,13 @@ public class GiveawayCommand extends ListenerAdapter {
         }
     }
 
-    private void handleCreateCommand(SlashCommandInteractionEvent event) {
+    public void handleCreateCommand(SlashCommandInteractionEvent event) {
+        // Ensure the user has the ADMINISTRATOR permission
+        if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
+            event.reply("You do not have permission to use that command!").setEphemeral(true).queue();
+            return;
+        }
+
         // Get the options and check if null
         final String title = Optional.ofNullable(event.getOption("title"))
                 .map(OptionMapping::getAsString)
@@ -113,12 +109,6 @@ public class GiveawayCommand extends ListenerAdapter {
             return;
         }
 
-        // Ensure the user has the ADMINISTRATOR permission
-        if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
-            event.reply("You do not have permission to use that command!").setEphemeral(true).queue();
-            return;
-        }
-
         // Check if a giveaway with the same title already exists. Titles are unique so we can use them as identifiers
         if (giveawayService.getGiveawayByTitle(title) != null) {
             event.reply("A giveaway with this title already exists. Please choose a unique title.").setEphemeral(true).queue();
@@ -138,12 +128,7 @@ public class GiveawayCommand extends ListenerAdapter {
             giveawayService.createGiveaway(giveaway);
 
             // Schedule the giveaway end
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    GiveawayUtil.endGiveaway(giveaway, message.getJDA(), message.getIdLong(), giveawayService, winnerService);
-                }
-            }, durationMillis);
+            GiveawayUtil.scheduleGiveawayEnd(giveaway, message.getJDA(), giveawayService, winnerService, durationMillis);
         });
 
         event.reply("Giveaway created successfully!").setEphemeral(true).queue();

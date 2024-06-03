@@ -5,7 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.example.repositories.GiveawayRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
@@ -22,17 +23,19 @@ public class GiveawayService {
         return giveawayRepository.save(giveaway);
     }
 
-    @Transactional
+    @Transactional(propagation= Propagation.REQUIRED, readOnly=true, noRollbackFor=Exception.class)
     public GiveawayEntity getGiveawayByMessageId(Long messageId) {
         GiveawayEntity giveaway = giveawayRepository.findByMessageId(messageId);
         giveaway.getEntries().size(); // Initialize the collection
         return giveaway;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public GiveawayEntity getGiveawayByTitle(String title) {
         return giveawayRepository.findByTitle(title);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<GiveawayEntity> getAllGiveaways() {
         return giveawayRepository.findAll();
     }
