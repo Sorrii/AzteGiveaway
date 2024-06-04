@@ -79,7 +79,6 @@ public class RerollCommand extends ListenerAdapter {
             event.reply("No giveaway found with the title: " + title).setEphemeral(true).queue();
             return;
         }
-        giveaway.getEntries().size(); // Initialize the entries collection
 
         // Set the number of winners to the new number of winners if it's not null else set it to the original number of winners
         int winnersCount = newWinners != null ? newWinners : giveaway.getNumberOfWinners();
@@ -91,7 +90,7 @@ public class RerollCommand extends ListenerAdapter {
                 .collect(Collectors.toSet());
 
         // Filtering out previous winners from the entries
-        List<Long> eligibleEntries = giveaway.getEntries().stream()
+        List<Long> eligibleEntries = giveawayService.getGiveawayEntries(giveaway.getId()).stream()
                 .filter(entry -> !previousWinnerIds.contains(entry))
                 .collect(Collectors.toList());
 
@@ -120,7 +119,7 @@ public class RerollCommand extends ListenerAdapter {
         StringBuilder winnerMessage = new StringBuilder("Reroll for giveaway " + giveaway.getTitle() + "! Congratulations to the new winners:\n");
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
-            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), winnerId));
+            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), giveaway.getMessageId(), winnerId));
         }
 
         event.reply(winnerMessage.toString()).queue(); // here is the actual command that makes the announcement that appears in the channel

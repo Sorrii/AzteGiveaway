@@ -2,6 +2,7 @@
  * Class that handles the roll command.
  * This command is used to instantly roll a giveaway and select winners
  * Only users with the ADMINISTRATOR permission can use this command
+ * You cannot roll a giveaway that has already ended -> use the reroll command instead
  * USAGE: /giveaway roll --giveaway_title "title"
  */
 
@@ -58,10 +59,15 @@ public class RollCommand extends ListenerAdapter {
             event.reply("No giveaway found with the title: " + title).setEphemeral(true).queue();
             return;
         }
-        giveaway.getEntries().size(); // Initialize the entries collection
 
-        // Cancel the scheduled end of the giveaway
-        GiveawayUtil.cancelScheduledGiveawayEnd(giveaway);
+        // Cancel the scheduled end of the giveaway if it hasn't ended yet
+        boolean isEnded = GiveawayUtil.cancelScheduledGiveawayEnd(giveaway);
+        if (!isEnded) {
+            event.reply("The giveaway " + title + " has already ended.").queue();
+            return;
+        }
+
+        giveaway = giveawayService.getGiveawayByTitle(title); // Retrieve the giveaway again
 
         // Roll the giveaway immediately
         GiveawayUtil.endGiveaway(giveaway, event.getJDA(), giveaway.getMessageId(), giveawayService, winnerService);

@@ -25,18 +25,22 @@ public class SlashCommandListener extends ListenerAdapter {
     private final DeleteCommand deleteCommand;
     private final WinnersCommand winnersCommand;
 
+    private final PlanCommand planCommand;
+
     @Autowired
     public SlashCommandListener(GiveawayCommand giveawayCommand,
                                 RerollCommand rerollCommand,
                                 RollCommand rollCommand,
                                 DeleteCommand deleteCommand,
-                                WinnersCommand winnersCommand) {
+                                WinnersCommand winnersCommand,
+                                PlanCommand planCommand) {
 
         this.giveawayCommand = giveawayCommand;
         this.rerollCommand = rerollCommand;
         this.rollCommand = rollCommand;
         this.deleteCommand = deleteCommand;
         this.winnersCommand = winnersCommand;
+        this.planCommand = planCommand;
     }
 
     @Override
@@ -58,6 +62,9 @@ public class SlashCommandListener extends ListenerAdapter {
             } else if (Objects.equals(subcommand, "winners")) {
                 LOGGER.info("Received winners command");
                 winnersCommand.handleWinnersCommand(event);
+            } else if (Objects.equals(subcommand, "plan")) {
+                LOGGER.info("Received plan command");
+                planCommand.handlePlanCommand(event);
             } else {
                 event.reply("Unknown subcommand: " + subcommand).setEphemeral(true).queue();
             }

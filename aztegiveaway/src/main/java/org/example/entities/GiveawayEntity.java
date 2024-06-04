@@ -13,10 +13,13 @@ public class GiveawayEntity {
     private Long id;
 
     @Column(name = "message_id", nullable = false, unique = true)
-    private Long messageId;
+    private Long messageId = 0L;
 
     @Column(name = "title", nullable = false, length = 100, unique = true)
     private String title;
+
+    @Column(name = "prize", nullable = false, length = 100)
+    private String prize;
 
     @Column(name = "number_of_winners", nullable = false)
     private int numberOfWinners;
@@ -37,9 +40,10 @@ public class GiveawayEntity {
 
     public GiveawayEntity() {}
 
-    public GiveawayEntity(long messageId, String title, int numberOfWinners, long duration, long channelId) {
+    public GiveawayEntity(long messageId, String title, String prize, int numberOfWinners, long duration, long channelId) {
         this.messageId = messageId;
         this.title = title;
+        this.prize = prize;
         this.numberOfWinners = numberOfWinners;
         this.duration = duration;
         this.channelId = channelId;
@@ -64,6 +68,10 @@ public class GiveawayEntity {
     public void setTitle(String title) {
         this.title = title;
     }
+
+    public String getPrize() { return prize; }
+
+    public void setPrize(String prize) { this.prize = prize; }
 
     public int getNumberOfWinners() {
         return numberOfWinners;

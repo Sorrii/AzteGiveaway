@@ -67,6 +67,8 @@ public class GiveawayCommand extends ListenerAdapter {
             }
 
             LOGGER.info("Entries for giveaway: {}", giveaway.getEntries());
+        } else {
+            LOGGER.warn("Giveaway with message ID {} not found", messageId);
         }
     }
 
@@ -124,8 +126,11 @@ public class GiveawayCommand extends ListenerAdapter {
 
         textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
             message.addReaction(Emoji.fromUnicode("🎉")).queue();
-            GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, numberOfWinners, durationMillis, textChannel.getIdLong());
+            GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, prize, numberOfWinners, durationMillis, textChannel.getIdLong());
+            giveaway.setPrize(prize);
             giveawayService.createGiveaway(giveaway);
+
+            LOGGER.info("Giveaway created: {}", giveaway);
 
             // Schedule the giveaway end
             GiveawayUtil.scheduleGiveawayEnd(giveaway, message.getJDA(), giveawayService, winnerService, durationMillis);

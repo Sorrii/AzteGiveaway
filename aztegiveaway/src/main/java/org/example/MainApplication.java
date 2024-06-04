@@ -7,6 +7,9 @@ package org.example;
 
 import commands.*;
 
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import jakarta.annotation.PostConstruct;
@@ -27,10 +30,13 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import utils.EmbedUtil;
 import utils.GiveawayUtil;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @SpringBootApplication(scanBasePackages = "org.example")
 public class MainApplication {
@@ -67,9 +73,18 @@ public class MainApplication {
             RollCommand rollCommand = new RollCommand(giveawayService, winnerService);
             WinnersCommand winnersCommand = new WinnersCommand(winnerService);
             DeleteCommand deleteCommand = new DeleteCommand(giveawayService);
+            PlanCommand planCommand = new PlanCommand(giveawayService, winnerService);
 
             // Initialize the slash command listener
-            SlashCommandListener slashCommandListener = new SlashCommandListener(giveawayCommand, rerollCommand, rollCommand, deleteCommand, winnersCommand);
+            SlashCommandListener slashCommandListener =
+                    new SlashCommandListener(
+                        giveawayCommand,
+                        rerollCommand,
+                        rollCommand,
+                        deleteCommand,
+                        winnersCommand,
+                        planCommand
+                    );
 
             JDA jda = JDABuilder.createDefault(token)
                     .enableIntents(
@@ -99,17 +114,55 @@ public class MainApplication {
                                     new SubcommandData("delete", "Delete the giveaway")
                                             .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
                                     new SubcommandData("winners", "Get the winners of the giveaway")
-                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true)
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
+                                    new SubcommandData("plan", "Schedule a new giveaway")
+                                            .addOption(OptionType.STRING, "start_time", "The start time of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
+                                            .addOption(OptionType.STRING, "title", "The title of the giveaway", true)
+                                            .addOption(OptionType.STRING, "prize", "The prize of the giveaway", true)
+                                            .addOption(OptionType.STRING, "duration", "The duration of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
+                                            .addOption(OptionType.INTEGER, "winners", "The number of winners", true)
+                                            .addOption(OptionType.CHANNEL, "channel", "The channel where the giveaway will be announced", false)
                                     )
             ).queue();
 
             LOGGER.info("Bot is starting...");
 
-            // Retrieve and reschedule active giveaways
+            // Retrieve and reschedule active and planned giveaways
             List<GiveawayEntity> activeGiveaways = giveawayService.getAllGiveaways();
             for (GiveawayEntity giveaway : activeGiveaways) {
-                long remainingTime = giveaway.getDuration() - (Instant.now().toEpochMilli() - giveaway.getStartTime().toEpochMilli());
-                if (remainingTime > 0) {
+                long currentTime = Instant.now().toEpochMilli();
+                long startTime = giveaway.getStartTime().toEpochMilli();
+                long remainingTime = giveaway.getDuration() - (currentTime - startTime);
+
+                if (startTime > currentTime) {
+                    // Giveaway is planned for future
+                    new Timer().schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            EmbedBuilder embedBuilder = EmbedUtil.createGiveawayEmbed(
+                                    giveaway.getTitle(),
+                                    giveaway.getPrize(),
+                                    giveaway.getDuration() / 1000 + "s",
+                                    giveaway.getNumberOfWinners(),
+                                    Instant.now().plusMillis(giveaway.getDuration())
+                            );
+
+                            TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
+                            if (textChannel != null) {
+                                textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
+                                    message.addReaction(Emoji.fromUnicode("🎉")).queue();
+                                    giveaway.setMessageId(message.getIdLong());
+                                    giveawayService.updateGiveaway(giveaway);
+                                    GiveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, giveaway.getDuration());
+                                });
+                            } else {
+                                LOGGER.error("Channel not found for giveaway: {}", giveaway.getTitle());
+                            }
+                        }
+                    }, startTime - currentTime);
+                    LOGGER.info("Scheduled future giveaway {} to start at {}", giveaway.getTitle(), giveaway.getStartTime());
+                } else if (remainingTime > 0) {
+                    // Giveaway is active
                     GiveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, remainingTime);
                     LOGGER.info("Rescheduled giveaway {} with remaining time {} ms", giveaway.getTitle(), remainingTime);
                 } else {

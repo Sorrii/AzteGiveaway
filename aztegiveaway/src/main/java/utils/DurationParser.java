@@ -6,23 +6,20 @@ import java.util.regex.Pattern;
 
 public class DurationParser {
 
-    /**
-     * Parses a complex duration string and returns the total duration in milliseconds
-     *
-     * @param durationStr The duration string (e.g., "1h30m", "1h20s", "xdymzs")
-     * @return The total duration in milliseconds
-     * @throws IllegalArgumentException if the duration string is invalid
-     */
+    // Regular expression to match a duration string like "1d2h30m15s"
+    private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)([dhms])");
+
     public static long parseDuration(String durationStr) {
-        // Regular expression to match patterns like "1d", "2h", "30m", "20s"
-        Pattern pattern = Pattern.compile("(\\d+)([dhms])");
-        Matcher matcher = pattern.matcher(durationStr);
+        // Double-checking never hurts
+        if (durationStr == null || durationStr.trim().isEmpty()) {
+            throw new IllegalArgumentException("Duration string cannot be null or empty.");
+        }
+
+        Matcher matcher = DURATION_PATTERN.matcher(durationStr.trim());
 
         long totalMillis = 0;
-
-        // Iterating over the matches and adding the corresponding duration to the total
         while (matcher.find()) {
-            long value = Long.parseLong(matcher.group(1));
+            int value = Integer.parseInt(matcher.group(1));
             String unit = matcher.group(2);
 
             switch (unit) {
@@ -30,12 +27,8 @@ public class DurationParser {
                 case "h" -> totalMillis += Duration.ofHours(value).toMillis();
                 case "m" -> totalMillis += Duration.ofMinutes(value).toMillis();
                 case "s" -> totalMillis += Duration.ofSeconds(value).toMillis();
-                default -> throw new IllegalArgumentException("Invalid duration unit: " + unit);
+                default -> totalMillis += 0; // Ignore unknown units
             }
-        }
-
-        if (totalMillis == 0) {
-            throw new IllegalArgumentException("Invalid duration format");
         }
 
         return totalMillis;

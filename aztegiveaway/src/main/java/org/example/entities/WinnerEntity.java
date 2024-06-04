@@ -11,14 +11,16 @@ public class WinnerEntity {
 
     @Column(name = "giveaway_title", nullable = false)
     private String giveawayTitle;
-
+    @Column(name = "giveaway_message_id", nullable = false)
+    private Long giveawayMessageId;
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
     public WinnerEntity() {}
 
-    public WinnerEntity(String giveawayTitle, Long userId) {
+    public WinnerEntity(String giveawayTitle, Long giveawayMessageId, Long userId) {
         this.giveawayTitle = giveawayTitle;
+        this.giveawayMessageId = giveawayMessageId;
         this.userId = userId;
     }
 
