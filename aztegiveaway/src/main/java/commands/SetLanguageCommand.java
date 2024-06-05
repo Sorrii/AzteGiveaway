@@ -46,7 +46,7 @@ public class SetLanguageCommand {
         }
 
         languagePreferenceService.setLanguagePreference(guildId, language);
-        event.reply(localizationUtil.getLocalizedMessage(guildId, "language_set_success").replace("{0}", language)).setEphemeral(true).queue();
+        event.reply(localizationUtil.getLocalizedMessage(guildId, "language_set_success").replace("{0}", language)).queue();
         LOGGER.info("Language preference set to {} for guild {}", language, guildId);
     }
 }

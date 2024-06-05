@@ -80,9 +80,14 @@ public class SlashCommandListener extends ListenerAdapter {
             } else {
                 event.reply(localizationUtil.getLocalizedMessage(guildId, "unknown_subcommand").replace("{0}", event.getName())).setEphemeral(true).queue();
             }
-        } else if ("setlanguage".equals(event.getName())) {
-            LOGGER.info("Received setlanguage command");
-            setLanguageCommand.handleSetLanguageCommand(event);
+        } else if ("set".equals(event.getName())) {
+            String subcommand = event.getSubcommandName();
+            if (Objects.equals(subcommand, "language")) {
+                LOGGER.info("Received set language command");
+                setLanguageCommand.handleSetLanguageCommand(event);
+            }  else {
+                event.reply(localizationUtil.getLocalizedMessage(guildId, "unknown_subcommand").replace("{0}", event.getName())).setEphemeral(true).queue();
+            }
         } else {
             event.reply(localizationUtil.getLocalizedMessage(guildId, "unknown_command").replace("{0}", event.getName())).setEphemeral(true).queue();
         }

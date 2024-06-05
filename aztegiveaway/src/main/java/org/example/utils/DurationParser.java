@@ -12,7 +12,7 @@ public class DurationParser {
     public static long parseDuration(String durationStr) {
         // Double-checking never hurts
         if (durationStr == null || durationStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("Duration string cannot be null or empty.");
+            return 0;
         }
 
         Matcher matcher = DURATION_PATTERN.matcher(durationStr.trim());

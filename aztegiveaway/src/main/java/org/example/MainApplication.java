@@ -65,7 +65,7 @@ public class MainApplication {
     @PostConstruct
     public void startBot() {
         if (token == null || token.isEmpty()) {
-            LOGGER.error("Bot token is not set in config.properties");
+            LOGGER.error("Bot token is not set in application.properties");
             return;
         }
 
@@ -126,7 +126,7 @@ public class MainApplication {
                                             .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
                                     new SubcommandData("winners", "Get the winners of the giveaway")
                                             .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", false)
-                                            .addOption(OptionType.NUMBER, "giveaway_message_id", "The message ID of the giveaway", false),
+                                            .addOption(OptionType.STRING, "giveaway_message_id", "The message ID of the giveaway", false),
                                     new SubcommandData("plan", "Schedule a new giveaway")
                                             .addOption(OptionType.STRING, "start_time", "The start time of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
                                             .addOption(OptionType.STRING, "title", "The title of the giveaway", true)
@@ -135,11 +135,15 @@ public class MainApplication {
                                             .addOption(OptionType.INTEGER, "winners", "The number of winners", true)
                                             .addOption(OptionType.CHANNEL, "channel", "The channel where the giveaway will be announced", false)
                             ),
-                    Commands.slash("setlanguage", "Set the language preference for the bot")
-                            .addOptions(
-                                    new OptionData(OptionType.STRING, "language", "The language preference for the bot")
-                                            .addChoice("English", "en")
-                                            .addChoice("Romanian", "ro")
+                    Commands.slash("set", "Set the language preference for the bot")
+                            .addSubcommands(
+                                    new SubcommandData("language", "Set the language preference for the bot")
+                                            .addOptions(
+                                                    new OptionData(OptionType.STRING, "language", "The language preference for the bot")
+                                                            .addChoice("English", "en")
+                                                            .addChoice("Romanian", "ro")
+                                            )
+
                             )
             ).queue();
 
@@ -194,4 +198,3 @@ public class MainApplication {
         }
     }
 }
-

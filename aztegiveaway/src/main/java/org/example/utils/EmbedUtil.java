@@ -1,6 +1,9 @@
 package org.example.utils;
 
+import commands.GiveawayCommand;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -28,6 +31,7 @@ public class EmbedUtil {
         String winnersLabel = localizationUtil.getLocalizedMessage(guildId, "embed_winners");
         String endTimeLabel = localizationUtil.getLocalizedMessage(guildId, "embed_end_time");
         String footerMessage = localizationUtil.getLocalizedMessage(guildId, "embed_footer").replace("{0}", "🎉");
+
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle(title)

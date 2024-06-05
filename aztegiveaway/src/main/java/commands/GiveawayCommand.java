@@ -81,9 +81,9 @@ public class GiveawayCommand extends ListenerAdapter {
             event.reply("This command can only be used in a server.").setEphemeral(true).queue();
             return;
         }
-        
+
         Long guildId = event.getGuild().getIdLong();
-        
+
         // Ensure the user has the ADMINISTRATOR permission
         if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
             LOGGER.warn("User {} does not have permission to use the giveaway command", event.getUser());

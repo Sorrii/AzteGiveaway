@@ -83,4 +83,3 @@ public class DeleteCommand extends ListenerAdapter {
         LOGGER.info("Giveaway with title {} has been deleted from the database.", title);
     }
 }
-
