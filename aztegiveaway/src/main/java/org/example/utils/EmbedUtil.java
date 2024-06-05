@@ -8,11 +8,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class EmbedUtil {
     public static EmbedBuilder createGiveawayEmbed(String title, String prize, String duration, int winners, Instant endTime, Long guildId, LocalizationUtil localizationUtil) {
-        // Define the Bucharest time zone
+        // Define the Bucharest time zone (as main server is in Bucharest)
         ZoneId bucharestZone = ZoneId.of("Europe/Bucharest");
 
         // Format the end date and time for Bucharest time
@@ -37,5 +39,30 @@ public class EmbedUtil {
                 .setFooter(footerMessage);
 
         return embedBuilder;
+    }
+
+    public static List<EmbedBuilder> createPaginatedEmbeds(List<String> messages, int itemsPerPage) {
+        List<EmbedBuilder> embeds = new ArrayList<>();
+        int totalPages = (int) Math.ceil((double) messages.size() / itemsPerPage);
+
+        for (int i = 0; i < totalPages; i++) {
+            int start = i * itemsPerPage;
+            int end = Math.min(start + itemsPerPage, messages.size());
+
+            EmbedBuilder embedBuilder = new EmbedBuilder();
+            embedBuilder
+                    .setTitle(" (Page " + (i + 1) + "/" + totalPages + ")")
+                    .setColor(Color.RED);
+
+            StringBuilder pageContent = new StringBuilder();
+            for (int j = start; j < end; j++) {
+                pageContent.append(messages.get(j)).append("\n");
+            }
+
+            embedBuilder.setDescription(pageContent.toString());
+            embeds.add(embedBuilder);
+        }
+
+        return embeds;
     }
 }

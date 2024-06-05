@@ -78,11 +78,11 @@ public class GiveawayUtil {
             textChannel.retrieveMessageById(messageId).queue(message -> message.reply(noEntriesMessage).queue());
             return;
         }
-
-        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "giveaway_winner_message").replace("{0}", updatedGiveaway.getTitle()));
+        String winnerText = giveaway.getNumberOfWinners() == 1 ? localizationUtil.getLocalizedMessage(guildId, "winner") : localizationUtil.getLocalizedMessage(guildId, "winners");
+        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "giveaway_winner_message").replace("{0}", updatedGiveaway.getTitle()) + " " + winnerText + ":\n");
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
-            winnerService.addWinner(new WinnerEntity(updatedGiveaway.getTitle(), updatedGiveaway.getMessageId(), winnerId));
+            winnerService.addWinner(new WinnerEntity(updatedGiveaway.getTitle(), updatedGiveaway.getMessageId(), winnerId, guildId));
         }
 
         giveawayTimers.remove(messageId);
@@ -125,7 +125,7 @@ public class GiveawayUtil {
             Long guildId = giveaway.getGuildId();
             String message;
             if (percentage == 50) {
-                String winnerText = giveaway.getNumberOfWinners() == 1 ? "winner" : "winners";
+                String winnerText = giveaway.getNumberOfWinners() == 1 ? localizationUtil.getLocalizedMessage(guildId, "winner") : localizationUtil.getLocalizedMessage(guildId, "winners");
                 message = localizationUtil.getLocalizedMessage(guildId, "giveaway_halfway_reminder").replace("{0}", winnerText);
             } else {
                 message = localizationUtil.getLocalizedMessage(guildId, "giveaway_almost_ended_reminder");

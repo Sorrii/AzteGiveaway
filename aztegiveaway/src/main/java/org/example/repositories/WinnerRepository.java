@@ -7,9 +7,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-
 public interface WinnerRepository extends JpaRepository<WinnerEntity, Long> {
-    List<WinnerEntity> findByGiveawayTitle(String giveawayTitle);
-
-    void deleteByGiveawayTitle(String giveawayTitle);
+    List<WinnerEntity> findByGiveawayTitleAndGuildId(String giveawayTitle, Long guildId);
+    List<WinnerEntity> findByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId);
+    List<WinnerEntity> findByGuildId(Long guildId);
+    void deleteByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId);
 }

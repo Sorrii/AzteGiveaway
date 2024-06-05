@@ -125,7 +125,8 @@ public class MainApplication {
                                     new SubcommandData("delete", "Delete the giveaway")
                                             .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
                                     new SubcommandData("winners", "Get the winners of the giveaway")
-                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", true),
+                                            .addOption(OptionType.STRING, "giveaway_title", "The title of the giveaway", false)
+                                            .addOption(OptionType.NUMBER, "giveaway_message_id", "The message ID of the giveaway", false),
                                     new SubcommandData("plan", "Schedule a new giveaway")
                                             .addOption(OptionType.STRING, "start_time", "The start time of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
                                             .addOption(OptionType.STRING, "title", "The title of the giveaway", true)

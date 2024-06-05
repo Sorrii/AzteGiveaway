@@ -3,7 +3,7 @@ package org.example.entities;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "winners")
+@Table(name = "winners", uniqueConstraints = @UniqueConstraint(columnNames = {"giveaway_title", "giveaway_message_id", "guild_id", "user_id"}))
 public class WinnerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -11,17 +11,23 @@ public class WinnerEntity {
 
     @Column(name = "giveaway_title", nullable = false)
     private String giveawayTitle;
+
     @Column(name = "giveaway_message_id", nullable = false)
     private Long giveawayMessageId;
+
+    @Column(name = "guild_id", nullable = false)
+    private Long guildId;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
     public WinnerEntity() {}
 
-    public WinnerEntity(String giveawayTitle, Long giveawayMessageId, Long userId) {
+    public WinnerEntity(String giveawayTitle, Long giveawayMessageId, Long userId, Long guildId) {
         this.giveawayTitle = giveawayTitle;
         this.giveawayMessageId = giveawayMessageId;
         this.userId = userId;
+        this.guildId = guildId;
     }
 
     public Long getId() {
@@ -38,6 +44,22 @@ public class WinnerEntity {
 
     public void setGiveawayTitle(String giveawayTitle) {
         this.giveawayTitle = giveawayTitle;
+    }
+
+    public Long getGiveawayMessageId() {
+        return giveawayMessageId;
+    }
+
+    public void setGiveawayMessageId(Long giveawayMessageId) {
+        this.giveawayMessageId = giveawayMessageId;
+    }
+
+    public Long getGuildId() {
+        return guildId;
+    }
+
+    public void setGuildId(Long guildId) {
+        this.guildId = guildId;
     }
 
     public Long getUserId() {

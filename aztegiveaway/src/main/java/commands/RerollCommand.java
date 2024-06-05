@@ -83,7 +83,7 @@ public class RerollCommand extends ListenerAdapter {
         int winnersCount = newWinners != null ? newWinners : giveaway.getNumberOfWinners();
 
         // Retrieving previous winners to exclude them from the new draw
-        List<WinnerEntity> previousWinners = winnerService.getWinnersByGiveawayTitle(title);
+        List<WinnerEntity> previousWinners = winnerService.getWinnersByGiveawayMessageIdAndGuildId(giveaway.getMessageId(), guildId);
         Set<Long> previousWinnerIds = previousWinners.stream()
                 .map(WinnerEntity::getUserId)
                 .collect(Collectors.toSet());
@@ -110,15 +110,15 @@ public class RerollCommand extends ListenerAdapter {
 
         // Deleting previous winners if there are new eligible entries
         if (!eligibleEntries.isEmpty()) {
-            winnerService.deleteWinnersByGiveawayTitle(title);
+            winnerService.deleteWinnersByGiveawayMessageIdAndGuildId(giveaway.getMessageId(), guildId);
         }
         LOGGER.info("Selected new winners for giveaway {}: {}", giveaway.getTitle(), winners);
 
         // Announcing the new winners
-        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "reroll_success") + " " + giveaway.getTitle() + "! Congratulations to the new winners:\n");
+        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "reroll_success").replace("{0}", giveaway.getTitle()) + '\n');
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
-            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), giveaway.getMessageId(), winnerId));
+            winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), giveaway.getMessageId(), winnerId, guildId));
         }
 
         event.reply(winnerMessage.toString()).queue(); // here is the actual command that makes the announcement that appears in the channel
