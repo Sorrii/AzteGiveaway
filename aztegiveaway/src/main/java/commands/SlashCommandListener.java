@@ -1,8 +1,3 @@
-/**
- * This class listens for slash commands and delegates the handling of the commands to the appropriate command classes
- * The command classes are autowired into this class and are responsible for handling the commands
- */
-
 package commands;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -11,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.example.utils.LocalizationUtil;
 
 import java.util.Objects;
 
@@ -24,8 +20,9 @@ public class SlashCommandListener extends ListenerAdapter {
     private final RollCommand rollCommand;
     private final DeleteCommand deleteCommand;
     private final WinnersCommand winnersCommand;
-
     private final PlanCommand planCommand;
+    private final SetLanguageCommand setLanguageCommand;
+    private final LocalizationUtil localizationUtil;
 
     @Autowired
     public SlashCommandListener(GiveawayCommand giveawayCommand,
@@ -33,7 +30,10 @@ public class SlashCommandListener extends ListenerAdapter {
                                 RollCommand rollCommand,
                                 DeleteCommand deleteCommand,
                                 WinnersCommand winnersCommand,
-                                PlanCommand planCommand) {
+                                PlanCommand planCommand,
+                                SetLanguageCommand setLanguageCommand,
+                                LocalizationUtil localizationUtil
+                                ) {
 
         this.giveawayCommand = giveawayCommand;
         this.rerollCommand = rerollCommand;
@@ -41,10 +41,22 @@ public class SlashCommandListener extends ListenerAdapter {
         this.deleteCommand = deleteCommand;
         this.winnersCommand = winnersCommand;
         this.planCommand = planCommand;
+        this.setLanguageCommand = setLanguageCommand;
+        this.localizationUtil = localizationUtil;
     }
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        // Ensure the guild is not null
+        if (event.getGuild() == null) {
+            event.reply("This command can only be used in a server.").setEphemeral(true).queue();
+            return;
+        }
+
+        Long guildId = event.getGuild().getIdLong();
+
+
+        // Command handling block
         if ("giveaway".equals(event.getName())) {
             String subcommand = event.getSubcommandName();
             if (Objects.equals(subcommand, "create")) {
@@ -66,10 +78,13 @@ public class SlashCommandListener extends ListenerAdapter {
                 LOGGER.info("Received plan command");
                 planCommand.handlePlanCommand(event);
             } else {
-                event.reply("Unknown subcommand: " + subcommand).setEphemeral(true).queue();
+                event.reply(localizationUtil.getLocalizedMessage(guildId, "unknown_subcommand").replace("{0}", event.getName())).setEphemeral(true).queue();
             }
+        } else if ("setlanguage".equals(event.getName())) {
+            LOGGER.info("Received setlanguage command");
+            setLanguageCommand.handleSetLanguageCommand(event);
         } else {
-            event.reply("Unknown command: " + event.getName()).setEphemeral(true).queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "unknown_command").replace("{0}", event.getName())).setEphemeral(true).queue();
         }
     }
 }

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "giveaways")
+@Table(name = "giveaways", uniqueConstraints = @UniqueConstraint(columnNames = {"title", "guildId"}))
 public class GiveawayEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,7 +15,7 @@ public class GiveawayEntity {
     @Column(name = "message_id", nullable = false, unique = true)
     private Long messageId = 0L;
 
-    @Column(name = "title", nullable = false, length = 100, unique = true)
+    @Column(name = "title", nullable = false, length = 100)
     private String title;
 
     @Column(name = "prize", nullable = false, length = 100)
@@ -30,6 +30,9 @@ public class GiveawayEntity {
     @Column(name = "channel_id", nullable = false)
     private Long channelId;
 
+    @Column(name = "guildId", nullable = false)
+    private Long guildId;
+
     @Column(name = "start_time", nullable = false)
     private Instant startTime = Instant.now();
 
@@ -40,13 +43,14 @@ public class GiveawayEntity {
 
     public GiveawayEntity() {}
 
-    public GiveawayEntity(long messageId, String title, String prize, int numberOfWinners, long duration, long channelId) {
+    public GiveawayEntity(long messageId, String title, String prize, int numberOfWinners, long duration, long channelId, Long guildId) {
         this.messageId = messageId;
         this.title = title;
         this.prize = prize;
         this.numberOfWinners = numberOfWinners;
         this.duration = duration;
         this.channelId = channelId;
+        this.guildId = guildId;
     }
 
     public Long getId() {
@@ -69,9 +73,13 @@ public class GiveawayEntity {
         this.title = title;
     }
 
-    public String getPrize() { return prize; }
+    public String getPrize() {
+        return prize;
+    }
 
-    public void setPrize(String prize) { this.prize = prize; }
+    public void setPrize(String prize) {
+        this.prize = prize;
+    }
 
     public int getNumberOfWinners() {
         return numberOfWinners;
@@ -97,6 +105,14 @@ public class GiveawayEntity {
         this.channelId = channelId;
     }
 
+    public Long getGuildId() {
+        return guildId;
+    }
+
+    public void setGuildId(Long guildId) {
+        this.guildId = guildId;
+    }
+
     public Instant getStartTime() {
         return startTime;
     }
@@ -115,4 +131,3 @@ public class GiveawayEntity {
         return entries;
     }
 }
-

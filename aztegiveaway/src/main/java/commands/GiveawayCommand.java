@@ -25,9 +25,10 @@ import org.springframework.stereotype.Component;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
 
-import utils.DurationParser;
-import utils.EmbedUtil;
-import utils.GiveawayUtil;
+import org.example.utils.DurationParser;
+import org.example.utils.EmbedUtil;
+import org.example.utils.GiveawayUtil;
+import org.example.utils.LocalizationUtil;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -40,11 +41,13 @@ public class GiveawayCommand extends ListenerAdapter {
 
     private final GiveawayService giveawayService;
     private final WinnerService winnerService;
+    private final LocalizationUtil localizationUtil;
 
     @Autowired
-    public GiveawayCommand(GiveawayService giveawayService, WinnerService winnerService) {
+    public GiveawayCommand(GiveawayService giveawayService, WinnerService winnerService, LocalizationUtil localizationUtil) {
         this.giveawayService = giveawayService;
         this.winnerService = winnerService;
+        this.localizationUtil = localizationUtil;
     }
 
     @Override
@@ -73,9 +76,18 @@ public class GiveawayCommand extends ListenerAdapter {
     }
 
     public void handleCreateCommand(SlashCommandInteractionEvent event) {
+        // Ensure the guildId is not null
+        if (event.getGuild() == null) {
+            event.reply("This command can only be used in a server.").setEphemeral(true).queue();
+            return;
+        }
+        
+        Long guildId = event.getGuild().getIdLong();
+        
         // Ensure the user has the ADMINISTRATOR permission
         if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
-            event.reply("You do not have permission to use that command!").setEphemeral(true).queue();
+            LOGGER.warn("User {} does not have permission to use the giveaway command", event.getUser());
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "no_permission")).setEphemeral(true).queue();
             return;
         }
 
@@ -107,13 +119,15 @@ public class GiveawayCommand extends ListenerAdapter {
 
         // Ensure all required options are present
         if (title == null || prize == null || durationStr == null || numberOfWinners == null) {
-            event.reply("Missing required options: title, prize, duration, or winners.").setEphemeral(true).queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "missing_required_options")).setEphemeral(true).queue();
+            LOGGER.warn("User {} did not provide all required options for the giveaway. Creation failed!", event.getUser());
             return;
         }
 
         // Check if a giveaway with the same title already exists. Titles are unique so we can use them as identifiers
-        if (giveawayService.getGiveawayByTitle(title) != null) {
-            event.reply("A giveaway with this title already exists. Please choose a unique title.").setEphemeral(true).queue();
+        if (giveawayService.getGiveawayByTitleAndGuildId(title, guildId) != null) {
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "giveaway_exists")).setEphemeral(true).queue();
+            LOGGER.warn("Giveaway with title {} already exists. Creation failed!", title);
             return;
         }
 
@@ -122,21 +136,23 @@ public class GiveawayCommand extends ListenerAdapter {
         Instant endTime = Instant.now().plusMillis(durationMillis);
 
         // Create the giveaway embed
-        EmbedBuilder embedBuilder = EmbedUtil.createGiveawayEmbed(title, prize, durationStr, numberOfWinners, endTime);
+        EmbedBuilder embedBuilder = EmbedUtil.createGiveawayEmbed(title, prize, durationStr, numberOfWinners, endTime, guildId, localizationUtil);
+
+        GiveawayUtil giveawayUtil = new GiveawayUtil(localizationUtil);
 
         textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
             message.addReaction(Emoji.fromUnicode("🎉")).queue();
-            GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, prize, numberOfWinners, durationMillis, textChannel.getIdLong());
+            GiveawayEntity giveaway = new GiveawayEntity(message.getIdLong(), title, prize, numberOfWinners, durationMillis, textChannel.getIdLong(), guildId);
             giveaway.setPrize(prize);
             giveawayService.createGiveaway(giveaway);
 
-            LOGGER.info("Giveaway created: {}", giveaway);
+            LOGGER.info("Giveaway created: {} in guild {}", giveaway, guildId);
 
             // Schedule the giveaway end
-            GiveawayUtil.scheduleGiveawayEnd(giveaway, message.getJDA(), giveawayService, winnerService, durationMillis);
+            giveawayUtil.scheduleGiveawayEnd(giveaway, message.getJDA(), giveawayService, winnerService, durationMillis);
         });
 
-        event.reply("Giveaway created successfully!").setEphemeral(true).queue();
+        event.reply(localizationUtil.getLocalizedMessage(guildId, "giveaway_created_success")).setEphemeral(true).queue();
         LOGGER.info("Giveaway created with title: {}, duration: {}, and winners: {}", title, durationStr, numberOfWinners);
     }
 }

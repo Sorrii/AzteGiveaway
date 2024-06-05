@@ -1,33 +1,18 @@
-/**
- * Class that handles the reroll command
- * This command is used to reroll a giveaway and select new winners
- * If there are no eligible entries left, the previous winners are kept
- * If there are fewer eligible entries than the number of winners, they are selected as the new winners
- * Only users with the ADMINISTRATOR permission can use this command
- * You can specify the number of new winners to select (optional)
- * If the number of new winners is not specified, the original number of winners is used
- * USAGE: /giveaway reroll --giveaway_title "title" [--number_of_new_winners "number_of_new_winners"]
- */
-
 package commands;
 
 import org.example.entities.GiveawayEntity;
 import org.example.entities.WinnerEntity;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
-
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import utils.FairRandomizer;
-
+import org.example.utils.FairRandomizer;
+import org.example.utils.LocalizationUtil;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,17 +28,30 @@ public class RerollCommand extends ListenerAdapter {
     private final GiveawayService giveawayService;
     private final WinnerService winnerService;
 
+    private final LocalizationUtil localizationUtil;
+
     @Autowired
-    public RerollCommand(GiveawayService giveawayService, WinnerService winnerService) {
+    public RerollCommand(GiveawayService giveawayService, WinnerService winnerService, LocalizationUtil localizationUtil) {
         this.giveawayService = giveawayService;
         this.winnerService = winnerService;
+        this.localizationUtil = localizationUtil;
     }
 
     @Transactional
     public void handleRerollCommand(SlashCommandInteractionEvent event) {
+        // Ensure the guild is not null
+        if (event.getGuild() == null) {
+            event.reply("This command can only be used in a server.").setEphemeral(true).queue();
+            return;
+        }
+
+        // Get the guild ID
+        Long guildId = event.getGuild().getIdLong();
+
         // Ensure the user has the ADMINISTRATOR permission
         if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
-            event.reply("You do not have permission to use that command!").setEphemeral(true).queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "no_permission")).setEphemeral(true).queue();
+            LOGGER.warn("User {} does not have permission to use the reroll command", event.getUser());
             return;
         }
 
@@ -69,14 +67,15 @@ public class RerollCommand extends ListenerAdapter {
 
         // Check if the title is null
         if (title == null) {
-            event.reply("Missing required option: giveaway_title.").setEphemeral(true).queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "missing_required_options_reroll")).setEphemeral(true).queue();
             return;
         }
 
         // Retrieve the giveaway by title and initialize entries
-        GiveawayEntity giveaway = giveawayService.getGiveawayByTitle(title);
+        GiveawayEntity giveaway = giveawayService.getGiveawayByTitleAndGuildId(title, guildId);
         if (giveaway == null) {
-            event.reply("No giveaway found with the title: " + title).setEphemeral(true).queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "no_giveaway_found") + ": " + title).setEphemeral(true).queue();
+            LOGGER.warn("Giveaway with title {} not found", title);
             return;
         }
 
@@ -100,7 +99,7 @@ public class RerollCommand extends ListenerAdapter {
             // If there are no eligible entries, keep the previous winners as the new winners
             winners = new ArrayList<>(previousWinnerIds);
             LOGGER.info("No eligible entries found. Keeping the previous winners as the new winners.");
-            event.reply("No eligible entries found. Keeping the previous winners as the new winners.").queue();
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "no_eligible_entries")).queue();
         } else if (eligibleEntries.size() <= winnersCount) {
             // If the number of eligible entries is smaller than the number of winners, make them the new winners
             winners = eligibleEntries;
@@ -116,7 +115,7 @@ public class RerollCommand extends ListenerAdapter {
         LOGGER.info("Selected new winners for giveaway {}: {}", giveaway.getTitle(), winners);
 
         // Announcing the new winners
-        StringBuilder winnerMessage = new StringBuilder("Reroll for giveaway " + giveaway.getTitle() + "! Congratulations to the new winners:\n");
+        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "reroll_success") + " " + giveaway.getTitle() + "! Congratulations to the new winners:\n");
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
             winnerService.addWinner(new WinnerEntity(giveaway.getTitle(), giveaway.getMessageId(), winnerId));

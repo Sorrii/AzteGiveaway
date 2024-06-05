@@ -42,13 +42,14 @@ public class GiveawayService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
-    public GiveawayEntity getGiveawayByTitle(String title) {
-        GiveawayEntity giveaway = giveawayRepository.findByTitle(title);
+    public GiveawayEntity getGiveawayByTitleAndGuildId(String title, Long guildId) {
+        GiveawayEntity giveaway = giveawayRepository.findByTitleAndGuildId(title, guildId);
         if (giveaway == null) {
-            LOGGER.warn("No giveaway found with title: {}", title);
+            LOGGER.warn("No giveaway found with title: {} in guild: {}", title, guildId);
         }
         return giveaway;
     }
+
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<GiveawayEntity> getAllGiveaways() {

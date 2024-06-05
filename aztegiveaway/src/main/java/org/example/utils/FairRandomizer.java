@@ -3,7 +3,7 @@
  * It uses a secure random number generator to ensure fairness.
  */
 
-package utils;
+package org.example.utils;
 
 import java.security.SecureRandom;
 import java.util.Collections;

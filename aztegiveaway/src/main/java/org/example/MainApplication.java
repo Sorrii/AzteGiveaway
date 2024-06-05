@@ -10,6 +10,8 @@ import commands.*;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import jakarta.annotation.PostConstruct;
@@ -18,6 +20,7 @@ import org.springframework.context.ApplicationContext;
 
 import org.example.entities.GiveawayEntity;
 import org.example.services.GiveawayService;
+import org.example.services.LanguagePreferenceService;
 import org.example.services.WinnerService;
 
 import net.dv8tion.jda.api.JDABuilder;
@@ -30,8 +33,9 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import utils.EmbedUtil;
-import utils.GiveawayUtil;
+import org.example.utils.EmbedUtil;
+import org.example.utils.GiveawayUtil;
+import org.example.utils.LocalizationUtil;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,9 +50,12 @@ public class MainApplication {
     @Value("${bot.token}")
     private String token;
     private final ApplicationContext context;
+    private final LocalizationUtil localizationUtil;
 
-    public MainApplication(ApplicationContext context) {
+    @Autowired
+    public MainApplication(ApplicationContext context, LocalizationUtil localizationUtil) {
         this.context = context;
+        this.localizationUtil = localizationUtil;
     }
 
     public static void main(String[] args) {
@@ -66,24 +73,28 @@ public class MainApplication {
             // Get the services from the Spring context
             GiveawayService giveawayService = context.getBean(GiveawayService.class);
             WinnerService winnerService = context.getBean(WinnerService.class);
+            LanguagePreferenceService languagePreferenceService = context.getBean(LanguagePreferenceService.class);
 
             // Initialize the commands
-            GiveawayCommand giveawayCommand = new GiveawayCommand(giveawayService, winnerService);
-            RerollCommand rerollCommand = new RerollCommand(giveawayService, winnerService);
-            RollCommand rollCommand = new RollCommand(giveawayService, winnerService);
-            WinnersCommand winnersCommand = new WinnersCommand(winnerService);
-            DeleteCommand deleteCommand = new DeleteCommand(giveawayService);
-            PlanCommand planCommand = new PlanCommand(giveawayService, winnerService);
+            GiveawayCommand giveawayCommand = new GiveawayCommand(giveawayService, winnerService, localizationUtil);
+            RerollCommand rerollCommand = new RerollCommand(giveawayService, winnerService, localizationUtil);
+            RollCommand rollCommand = new RollCommand(giveawayService, winnerService, localizationUtil);
+            WinnersCommand winnersCommand = new WinnersCommand(winnerService, localizationUtil);
+            DeleteCommand deleteCommand = new DeleteCommand(giveawayService, localizationUtil);
+            PlanCommand planCommand = new PlanCommand(giveawayService, winnerService, localizationUtil);
+            SetLanguageCommand setLanguageCommand = new SetLanguageCommand(languagePreferenceService, localizationUtil);
 
             // Initialize the slash command listener
             SlashCommandListener slashCommandListener =
                     new SlashCommandListener(
-                        giveawayCommand,
-                        rerollCommand,
-                        rollCommand,
-                        deleteCommand,
-                        winnersCommand,
-                        planCommand
+                            giveawayCommand,
+                            rerollCommand,
+                            rollCommand,
+                            deleteCommand,
+                            winnersCommand,
+                            planCommand,
+                            setLanguageCommand,
+                            localizationUtil
                     );
 
             JDA jda = JDABuilder.createDefault(token)
@@ -122,13 +133,20 @@ public class MainApplication {
                                             .addOption(OptionType.STRING, "duration", "The duration of the giveaway (e.g., 1d, 1h30m, 2d3h, etc.)", true)
                                             .addOption(OptionType.INTEGER, "winners", "The number of winners", true)
                                             .addOption(OptionType.CHANNEL, "channel", "The channel where the giveaway will be announced", false)
-                                    )
+                            ),
+                    Commands.slash("setlanguage", "Set the language preference for the bot")
+                            .addOptions(
+                                    new OptionData(OptionType.STRING, "language", "The language preference for the bot")
+                                            .addChoice("English", "en")
+                                            .addChoice("Romanian", "ro")
+                            )
             ).queue();
 
             LOGGER.info("Bot is starting...");
 
             // Retrieve and reschedule active and planned giveaways
             List<GiveawayEntity> activeGiveaways = giveawayService.getAllGiveaways();
+            GiveawayUtil giveawayUtil = new GiveawayUtil(localizationUtil);
             for (GiveawayEntity giveaway : activeGiveaways) {
                 long currentTime = Instant.now().toEpochMilli();
                 long startTime = giveaway.getStartTime().toEpochMilli();
@@ -137,37 +155,37 @@ public class MainApplication {
                 if (startTime > currentTime) {
                     // Giveaway is planned for future
                     new Timer().schedule(new TimerTask() {
+                        final TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
+                        // DO NOT DELETE THE CHANNEL BEFORE THE GIVEAWAY ENDS PLS
                         @Override
                         public void run() {
+                            assert textChannel != null; // hopefully it's never null :)
                             EmbedBuilder embedBuilder = EmbedUtil.createGiveawayEmbed(
                                     giveaway.getTitle(),
                                     giveaway.getPrize(),
                                     giveaway.getDuration() / 1000 + "s",
                                     giveaway.getNumberOfWinners(),
-                                    Instant.now().plusMillis(giveaway.getDuration())
+                                    Instant.now().plusMillis(giveaway.getDuration()),
+                                    giveaway.getGuildId(),
+                                    localizationUtil
                             );
 
-                            TextChannel textChannel = jda.getTextChannelById(giveaway.getChannelId());
-                            if (textChannel != null) {
-                                textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
-                                    message.addReaction(Emoji.fromUnicode("🎉")).queue();
-                                    giveaway.setMessageId(message.getIdLong());
-                                    giveawayService.updateGiveaway(giveaway);
-                                    GiveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, giveaway.getDuration());
-                                });
-                            } else {
-                                LOGGER.error("Channel not found for giveaway: {}", giveaway.getTitle());
-                            }
+                            textChannel.sendMessageEmbeds(embedBuilder.build()).queue(message -> {
+                                message.addReaction(Emoji.fromUnicode("🎉")).queue();
+                                giveaway.setMessageId(message.getIdLong());
+                                giveawayService.updateGiveaway(giveaway);
+                                giveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, giveaway.getDuration());
+                            });
                         }
                     }, startTime - currentTime);
                     LOGGER.info("Scheduled future giveaway {} to start at {}", giveaway.getTitle(), giveaway.getStartTime());
                 } else if (remainingTime > 0) {
                     // Giveaway is active
-                    GiveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, remainingTime);
+                    giveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, remainingTime);
                     LOGGER.info("Rescheduled giveaway {} with remaining time {} ms", giveaway.getTitle(), remainingTime);
                 } else {
                     // If the remaining time is negative or zero, end the giveaway immediately
-                    GiveawayUtil.endGiveaway(giveaway, jda, giveaway.getMessageId(), giveawayService, winnerService);
+                    giveawayUtil.endGiveaway(giveaway, jda, giveaway.getMessageId(), giveawayService, winnerService);
                 }
             }
         } catch (Exception e) {
@@ -175,3 +193,4 @@ public class MainApplication {
         }
     }
 }
+

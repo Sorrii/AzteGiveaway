@@ -16,8 +16,8 @@ public class WinnerService {
         this.winnerRepository = winnerRepository;
     }
 
-    public WinnerEntity addWinner(WinnerEntity winner) {
-        return winnerRepository.save(winner);
+    public void addWinner(WinnerEntity winner) {
+        winnerRepository.save(winner);
     }
 
     public List<WinnerEntity> addWinners(List<WinnerEntity> winners) {

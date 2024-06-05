@@ -9,6 +9,7 @@ package commands;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import org.example.entities.GiveawayEntity;
 import org.example.services.GiveawayService;
@@ -18,11 +19,12 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
+import org.example.utils.GiveawayUtil;
+import org.example.utils.LocalizationUtil;
+
+import java.text.MessageFormat;
 import java.util.Optional;
-
-import utils.GiveawayUtil;
 
 @Component
 public class DeleteCommand extends ListenerAdapter {
@@ -30,16 +32,27 @@ public class DeleteCommand extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteCommand.class);
 
     private final GiveawayService giveawayService;
+    private final LocalizationUtil localizationUtil;
 
     @Autowired
-    public DeleteCommand(GiveawayService giveawayService) {
+    public DeleteCommand(GiveawayService giveawayService, LocalizationUtil localizationUtil) {
         this.giveawayService = giveawayService;
+        this.localizationUtil = localizationUtil;
     }
 
     public void handleDeleteCommand(SlashCommandInteractionEvent event) {
-        // IMPORTANT Ensure the user has the ADMINISTRATOR permission
+        // Ensure the guild is not null
+        if (event.getGuild() == null) {
+            event.reply("This command can only be used in a server.").setEphemeral(true).queue();
+            return;
+        }
+
+        Long guildId = event.getGuild().getIdLong();
+
+        // Ensure the user has the ADMINISTRATOR permission
         if (event.getMember() == null || !event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
-            event.reply("You do not have permission to use this command!").setEphemeral(true).queue();
+            LOGGER.warn("User {} does not have permission to use the giveaway command", event.getUser());
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "no_permission")).setEphemeral(true).queue();
             return;
         }
 
@@ -50,21 +63,24 @@ public class DeleteCommand extends ListenerAdapter {
 
         // Check if the title is null
         if (title == null) {
-            event.reply("Missing required option: giveaway_title.").setEphemeral(true).queue();
+            LOGGER.warn("User {} did not provide a title for the giveaway. Deletion failed", event.getUser());
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "missing_title")).setEphemeral(true).queue();
             return;
         }
 
         // Delete the giveaway
-        GiveawayEntity giveaway = giveawayService.getGiveawayByTitle(title);
+        GiveawayEntity giveaway = giveawayService.getGiveawayByTitleAndGuildId(title, guildId);
         if (giveaway == null) {
-            event.reply("No giveaway found with the title: " + title).setEphemeral(true).queue();
+            LOGGER.warn("Giveaway with title {} not found in the database", title);
+            event.reply(MessageFormat.format(localizationUtil.getLocalizedMessage(guildId, "no_giveaway_found"), title)).setEphemeral(true).queue();
             return;
         }
         // Cancel the scheduled end for the giveaway
         GiveawayUtil.cancelScheduledGiveawayEnd(giveaway);
 
         giveawayService.deleteGiveaway(giveaway.getId());
-        event.reply("Giveaway with the title '" + title + "' has been deleted from the database.").setEphemeral(true).queue();
+        event.reply(MessageFormat.format(localizationUtil.getLocalizedMessage(guildId, "giveaway_deleted"), title)).setEphemeral(true).queue();
         LOGGER.info("Giveaway with title {} has been deleted from the database.", title);
     }
 }
+

@@ -1,16 +1,13 @@
-package utils;
+package org.example.utils;
 
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.JDA;
-
 import org.example.entities.GiveawayEntity;
 import org.example.entities.WinnerEntity;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,10 +21,16 @@ public class GiveawayUtil {
 
     // Map to store reminder timers for each giveaway
     private static final Map<Long, List<Timer>> reminderTimers = new ConcurrentHashMap<>();
+
+    private static LocalizationUtil localizationUtil;
     private static final int REMINDER_PERCENTAGE_50 = 50;
     private static final int REMINDER_PERCENTAGE_90 = 90;
 
-    public static void scheduleGiveawayEnd(final GiveawayEntity giveaway, JDA jda, GiveawayService giveawayService, WinnerService winnerService, long durationMillis) {
+    public GiveawayUtil(LocalizationUtil localizationUtil) {
+        GiveawayUtil.localizationUtil = localizationUtil;
+    }
+
+    public void scheduleGiveawayEnd(final GiveawayEntity giveaway, JDA jda, GiveawayService giveawayService, WinnerService winnerService, long durationMillis) {
         Timer timer = new Timer();
         giveawayTimers.put(giveaway.getMessageId(), timer);
 
@@ -54,7 +57,7 @@ public class GiveawayUtil {
         return false;
     }
 
-    public static void endGiveaway(final GiveawayEntity giveaway, JDA jda, final long messageId, GiveawayService giveawayService, WinnerService winnerService) {
+    public void endGiveaway(final GiveawayEntity giveaway, JDA jda, final long messageId, GiveawayService giveawayService, WinnerService winnerService) {
         // Reload the giveaway from the database to ensure the entries are up-to-date
         final GiveawayEntity updatedGiveaway = giveawayService.getGiveawayByMessageId(giveaway.getMessageId());
         LOGGER.info("Entries: {}", updatedGiveaway.getEntries());
@@ -68,12 +71,15 @@ public class GiveawayUtil {
             return;
         }
 
+        Long guildId = giveaway.getGuildId();
+
         if (winners.isEmpty()) {
-            textChannel.retrieveMessageById(messageId).queue(message -> message.reply("The giveaway " + updatedGiveaway.getTitle() + " has ended, but there were no entries.").queue());
+            String noEntriesMessage = localizationUtil.getLocalizedMessage(guildId, "giveaway_no_entries").replace("{0}", updatedGiveaway.getTitle());
+            textChannel.retrieveMessageById(messageId).queue(message -> message.reply(noEntriesMessage).queue());
             return;
         }
 
-        StringBuilder winnerMessage = new StringBuilder("The giveaway " + updatedGiveaway.getTitle() + " has ended! Congratulations to the winners:\n");
+        StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "giveaway_winner_message").replace("{0}", updatedGiveaway.getTitle()));
         for (Long winnerId : winners) {
             winnerMessage.append("<@").append(winnerId).append(">\n");
             winnerService.addWinner(new WinnerEntity(updatedGiveaway.getTitle(), updatedGiveaway.getMessageId(), winnerId));
@@ -86,7 +92,7 @@ public class GiveawayUtil {
     }
 
     // Method used to schedule reminders for the giveaway
-    private static void scheduleReminders(GiveawayEntity giveaway, JDA jda, long durationMillis) {
+    private void scheduleReminders(GiveawayEntity giveaway, JDA jda, long durationMillis) {
         Instant startTime = giveaway.getStartTime();
 
         long reminderTime50Percent = startTime.plusMillis(durationMillis / 2).toEpochMilli();
@@ -96,7 +102,7 @@ public class GiveawayUtil {
         scheduleReminder(giveaway, jda, reminderTime90Percent, REMINDER_PERCENTAGE_90);
     }
 
-    private static void scheduleReminder(GiveawayEntity giveaway, JDA jda, long reminderTime, int percentage) {
+    private void scheduleReminder(GiveawayEntity giveaway, JDA jda, long reminderTime, int percentage) {
         long currentTime = Instant.now().toEpochMilli();
         if (reminderTime > currentTime) {
             Timer reminderTimer = new Timer();
@@ -116,12 +122,13 @@ public class GiveawayUtil {
     private static void sendReminder(GiveawayEntity giveaway, JDA jda, int percentage) {
         TextChannel channel = jda.getTextChannelById(giveaway.getChannelId());
         if (channel != null) {
+            Long guildId = giveaway.getGuildId();
             String message;
             if (percentage == 50) {
                 String winnerText = giveaway.getNumberOfWinners() == 1 ? "winner" : "winners";
-                message = "Half way to announcing the " + winnerText + "! Make sure to enter! @everyone";
+                message = localizationUtil.getLocalizedMessage(guildId, "giveaway_halfway_reminder").replace("{0}", winnerText);
             } else {
-                message = "Giveaway has almost ended! Make sure you joined it! @everyone";
+                message = localizationUtil.getLocalizedMessage(guildId, "giveaway_almost_ended_reminder");
             }
             channel.retrieveMessageById(giveaway.getMessageId()) // Fetch the giveaway message
                     .queue(giveawayMessage -> giveawayMessage.reply(message).queue(),  // Reply to it if found

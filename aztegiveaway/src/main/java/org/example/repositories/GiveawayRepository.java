@@ -11,5 +11,5 @@ public interface GiveawayRepository extends JpaRepository<GiveawayEntity, Long> 
     GiveawayEntity findByMessageId(Long messageId);
 
     @EntityGraph(attributePaths = {"entries"})
-    GiveawayEntity findByTitle(String title);
+    GiveawayEntity findByTitleAndGuildId(String title, Long guildId);
 }
