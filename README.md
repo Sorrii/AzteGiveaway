@@ -325,6 +325,11 @@ The docker-compose file is used to set up the services:
    kubectl apply -f service.yaml
    ```
 
+### To view the database
+
+In order to view the entries for the database (using MySql) you need to use Azure Data Studio and expose the database cluster from Google Cloud  
+When exposing the database, you will receive a connection ip, which will be used to connect to the cloud db  
+
 ### In case of bot failure
 
 Not to worry! In the unfortunate case when the bot drops your giveaways are safely kept in the database. When bot becomes available again, it will retrieve the data and reschedule/roll the giveaway!  
