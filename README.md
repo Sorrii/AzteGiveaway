@@ -315,7 +315,7 @@ The docker-compose file is used to set up the services:
    - If you haven't already, create a GKE cluster: (only once)
    - Can be done from the Google console as well (https://console.cloud.google.com)
      ```bash
-     gcloud container clusters create aztegiveaway-cluster --zone us-central1-c --num-nodes=3
+     gcloud container clusters create aztegiveaway-cluster --zone YOUR_REGION --num-nodes=3
      ```
 
 7. Deploy the Application to GKE
