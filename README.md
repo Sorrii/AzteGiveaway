@@ -325,7 +325,9 @@ The docker-compose file is used to set up the services:
    kubectl apply -f service.yaml
    ```
 
+### In case of bot failure
 
+Not to worry! In the unfortunate case when the bot drops your giveaways are safely kept in the database. When bot becomes available again, it will retrieve the data and reschedule/roll the giveaway!  
 
 
 
