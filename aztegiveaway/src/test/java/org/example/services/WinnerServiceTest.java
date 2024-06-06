@@ -59,10 +59,22 @@ class WinnerServiceTest {
         Long giveawayMessageId = 1L;
         Long guildId = 1L;
 
+        WinnerEntity winner1 = new WinnerEntity("giveawayTitle1", giveawayMessageId, 123L, guildId);
+        WinnerEntity winner2 = new WinnerEntity("giveawayTitle1", giveawayMessageId, 456L, guildId);
+
+        when(winnerRepository.findByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId))
+                .thenReturn(List.of(winner1, winner2));
         doNothing().when(winnerRepository).deleteByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
 
         winnerService.deleteWinnersByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
+
         verify(winnerRepository, times(1)).deleteByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
+
+        when(winnerRepository.findByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId)).thenReturn(List.of());
+
+        List<WinnerEntity> winnersAfterDeletion = winnerService.getWinnersByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
+
+        assertTrue(winnersAfterDeletion.isEmpty());
     }
 }
 

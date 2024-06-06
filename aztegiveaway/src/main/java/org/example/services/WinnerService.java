@@ -34,7 +34,7 @@ public class WinnerService {
         return winnerRepository.findByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void deleteWinnersByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId) {
         winnerRepository.deleteByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
     }

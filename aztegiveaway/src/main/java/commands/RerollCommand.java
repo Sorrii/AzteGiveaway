@@ -122,6 +122,7 @@ public class RerollCommand {
 
         // Deleting previous winners if there are new eligible entries
         if (!eligibleEntries.isEmpty()) {
+            LOGGER.info("Deleting previous winners for giveaway {}", giveaway.getTitle());
             winnerService.deleteWinnersByGiveawayMessageIdAndGuildId(giveaway.getMessageId(), guildId);
         }
         LOGGER.info("Selected new winners for giveaway {}: {}", giveaway.getTitle(), winners);

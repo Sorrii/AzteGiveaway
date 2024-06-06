@@ -98,7 +98,7 @@ public class WinnersCommand extends ListenerAdapter { // it is not necessary to 
             }
 
             // Build the winner message
-            StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "winners_list").replace("{0}", title) + ":\n");
+            StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "winners_list").replace("{0}", title) + "\n");
             for (WinnerEntity winner : winners) {
                 winnerMessage.append("<@").append(winner.getUserId()).append(">\n");
             }
