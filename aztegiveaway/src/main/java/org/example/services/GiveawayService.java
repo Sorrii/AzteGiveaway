@@ -5,6 +5,8 @@
  * If any operation within the transaction fails, the entire transaction can be rolled back, maintaining data integrity.
  * READ-ONLY transactions are used when the method only reads data from the database and does not modify it. ->
  * -> The underlying database connection can be configured to be more efficient since no changes are expected.
+ * Usage of giveaway.getEntries().size(); is used to initialize the collection of entries to avoid LazyInitializationException.
+ * This is a common practice when working with JPA and Hibernate to ensure that the collection is loaded before the transaction ends.
  */
 
 package org.example.services;
@@ -41,22 +43,28 @@ public class GiveawayService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public GiveawayEntity getGiveawayByMessageId(Long messageId) {
-        GiveawayEntity giveaway = giveawayRepository.findByMessageId(messageId);
-        if (giveaway == null) {
-            LOGGER.warn("No giveaway found with message ID: {}", messageId);
-        } else {
-            giveaway.getEntries().size(); // Initialize the collection
-        }
-        return giveaway;
+        return giveawayRepository.findByMessageId(messageId)
+                .map(giveaway -> {
+                    giveaway.getEntries().size(); // Initialize the collection
+                    return giveaway;
+                })
+                .orElseGet(() -> {
+                    LOGGER.warn("No giveaway found with message ID: {}", messageId);
+                    return null;
+                });
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public GiveawayEntity getGiveawayByTitleAndGuildId(String title, Long guildId) {
-        GiveawayEntity giveaway = giveawayRepository.findByTitleAndGuildId(title, guildId);
-        if (giveaway == null) {
-            LOGGER.warn("No giveaway found with title: {} in guild: {}", title, guildId);
-        }
-        return giveaway;
+        return giveawayRepository.findByTitleAndGuildId(title, guildId)
+                .map(giveaway -> {
+                    giveaway.getEntries().size(); // Initialize the collection
+                    return giveaway;
+                })
+                .orElseGet(() -> {
+                    LOGGER.warn("No giveaway found with title: {} in guild: {}", title, guildId);
+                    return null;
+                });
     }
 
 
@@ -85,18 +93,22 @@ public class GiveawayService {
             LOGGER.warn("Cannot update. Giveaway not found or null: {}", giveaway);
             return;
         }
+
         giveawayRepository.save(giveaway);
         LOGGER.info("Updated giveaway: {}", giveaway);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<Long> getGiveawayEntries(Long giveawayId) {
-        GiveawayEntity giveaway = giveawayRepository.findById(giveawayId).orElse(null);
-        if (giveaway == null) {
-            LOGGER.warn("No giveaway found with ID: {}", giveawayId);
-            return null;
-        }
-        giveaway.getEntries().size(); // Initialize the collection
-        return giveaway.getEntries();
+        return giveawayRepository.findById(giveawayId)
+                .map(giveaway -> {
+                    List<Long> entries = giveaway.getEntries();
+                    entries.size(); // Initialize the collection
+                    return entries;
+                })
+                .orElseGet(() -> {
+                    LOGGER.warn("No giveaway found with ID: {}", giveawayId);
+                    return null;
+                });
     }
 }

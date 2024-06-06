@@ -12,11 +12,13 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface GiveawayRepository extends JpaRepository<GiveawayEntity, Long> {
     @EntityGraph(attributePaths = {"entries"})
-    GiveawayEntity findByMessageId(Long messageId);
+    Optional<GiveawayEntity> findByMessageId(Long messageId);
 
     @EntityGraph(attributePaths = {"entries"})
-    GiveawayEntity findByTitleAndGuildId(String title, Long guildId);
+    Optional<GiveawayEntity> findByTitleAndGuildId(String title, Long guildId);
 }
