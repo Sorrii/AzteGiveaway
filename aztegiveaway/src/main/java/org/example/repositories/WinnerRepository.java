@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface WinnerRepository extends JpaRepository<WinnerEntity, Long> {
-    List<WinnerEntity> findByGiveawayTitleAndGuildId(String giveawayTitle, Long guildId);
     List<WinnerEntity> findByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId);
     List<WinnerEntity> findByGuildId(Long guildId);
     void deleteByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId);

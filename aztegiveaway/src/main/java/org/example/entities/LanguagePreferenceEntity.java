@@ -1,3 +1,11 @@
+/**
+ * This class represents the language_preferences table in the database.
+ * It contains the following columns:
+ * - id: the primary key of the table
+ * - guild_id: the ID of the guild
+ * - language: the language preference of the guild
+ */
+
 package org.example.entities;
 
 import jakarta.persistence.*;

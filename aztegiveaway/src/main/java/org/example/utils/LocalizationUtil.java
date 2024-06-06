@@ -1,3 +1,8 @@
+/**
+ * Localization Utility class to get localized messages
+ * It uses the LocaleConfig to get the locale for a guild and ResourceBundle to get the messages for that locale.
+ */
+
 package org.example.utils;
 
 import org.example.config.LocaleConfig;

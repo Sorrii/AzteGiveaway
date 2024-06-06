@@ -1,9 +1,11 @@
+/**
+ * EmbedUtil class that handles the creation of embeds for the giveaway messages.
+ * The createGiveawayEmbed method creates an embed for the giveaway message with the provided details.
+ */
+
 package org.example.utils;
 
-import commands.GiveawayCommand;
 import net.dv8tion.jda.api.EmbedBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -45,6 +47,7 @@ public class EmbedUtil {
         return embedBuilder;
     }
 
+    // Create a list of paginated embeds (used to display all the winners of all the giveaways in a paginated way)
     public static List<EmbedBuilder> createPaginatedEmbeds(List<String> messages, int itemsPerPage) {
         List<EmbedBuilder> embeds = new ArrayList<>();
         int totalPages = (int) Math.ceil((double) messages.size() / itemsPerPage);

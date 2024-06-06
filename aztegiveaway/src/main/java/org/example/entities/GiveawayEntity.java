@@ -1,3 +1,18 @@
+/**
+ * This class represents the Giveaway entity in the database.
+ * It contains the following columns:
+ * - id: the primary key of the giveaway
+ * - messageId: the ID of the message that represents the giveaway
+ * - title: the title of the giveaway
+ * - prize: the prize of the giveaway
+ * - numberOfWinners: the number of winners of the giveaway
+ * - duration: the duration of the giveaway in milliseconds
+ * - channelId: the ID of the channel where the giveaway is hosted
+ * - guildId: the ID of the guild where the giveaway is hosted
+ * - startTime: the time when the giveaway started
+ * - entries: the list of user IDs who entered the giveaway
+ */
+
 package org.example.entities;
 
 import jakarta.persistence.*;

@@ -1,11 +1,23 @@
+/**
+ * Class that handles the set language command.
+ * This command allows the server administrator to set the language preference for the bot.
+ * The language preference is stored in the database and is used to determine the language of the bot's responses.
+ * Only users with the ADMINISTRATOR permission can use this command.
+ * USAGE: /set language --language "en" or "ro" <-- only given options
+ */
+
 package commands;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+
 import org.example.services.LanguagePreferenceService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import org.example.utils.LocalizationUtil;
 
 import java.util.Objects;
@@ -13,7 +25,6 @@ import java.util.Objects;
 @Component
 public class SetLanguageCommand {
     private static final Logger LOGGER = LoggerFactory.getLogger(SetLanguageCommand.class);
-
     private final LanguagePreferenceService languagePreferenceService;
     private final LocalizationUtil localizationUtil;
 

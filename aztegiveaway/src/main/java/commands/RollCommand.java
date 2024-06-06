@@ -1,3 +1,10 @@
+/**
+ * Class that handles the /roll command.
+ * This command is used to immediately roll (end) a giveaway and select a winner.
+ * Only users with the ADMINISTRATOR permission can use this command.
+ * USAGE: /giveaway roll --giveaway_title "title"
+ */
+
 package commands;
 
 import org.example.entities.GiveawayEntity;
@@ -36,7 +43,7 @@ public class RollCommand extends ListenerAdapter {
         this.localizationUtil = localizationUtil;
     }
 
-    @Transactional
+    @Transactional // Using this annotation to ensure that all db operations are done in a single transaction
     public void handleRollCommand(SlashCommandInteractionEvent event) {
         // Ensure the guild is not null
         if (event.getGuild() == null) {
@@ -81,7 +88,7 @@ public class RollCommand extends ListenerAdapter {
             return;
         }
 
-        giveaway = giveawayService.getGiveawayByTitleAndGuildId(title, guildId); // Retrieve the giveaway again
+        giveaway = giveawayService.getGiveawayByTitleAndGuildId(title, guildId); // Retrieve the giveaway again to ensure it's up-to-date
         GiveawayUtil giveawayUtil = new GiveawayUtil(localizationUtil);
         // Roll the giveaway immediately
         giveawayUtil.endGiveaway(giveaway, event.getJDA(), giveaway.getMessageId(), giveawayService, winnerService);

@@ -133,6 +133,11 @@ public class GiveawayCommand extends ListenerAdapter {
 
         // Calculate end time
         long durationMillis = DurationParser.parseDuration(durationStr);
+        if (durationMillis == 0) {
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "invalid_duration_option")).setEphemeral(true).queue();
+            LOGGER.warn("User {} provided an invalid duration for the giveaway. Creation failed!", event.getUser());
+            return;
+        }
         Instant endTime = Instant.now().plusMillis(durationMillis);
 
         // Create the giveaway embed

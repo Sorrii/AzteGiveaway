@@ -1,6 +1,13 @@
+/**
+ * This class is responsible for providing the locale based on the guild's language preference.
+ * It uses the LanguagePreferenceService to get the language preference for a guild.
+ * If the language preference is "ro", it returns a Romanian locale, otherwise it returns an English locale.
+ */
+
 package org.example.config;
 
 import org.example.services.LanguagePreferenceService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +23,7 @@ public class LocaleConfig {
         this.languagePreferenceService = languagePreferenceService;
     }
 
+    // returns the locale based on the guild's language preference
     public Locale getLocaleForGuild(Long guildId) {
         String language = languagePreferenceService.getLanguagePreference(guildId);
         if ("ro".equals(language)) {

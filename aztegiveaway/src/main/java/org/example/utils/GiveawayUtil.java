@@ -1,3 +1,9 @@
+/**
+ * Utility class to handle scheduling and ending giveaways.
+ * It uses a Timer to schedule the end of a giveaway and the FairRandomizer to select the winners.
+ * It also schedules reminders for the giveaway at 50% and 90% of the duration.
+ */
+
 package org.example.utils;
 
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -36,6 +42,7 @@ public class GiveawayUtil {
 
         scheduleReminders(giveaway, jda, durationMillis); // Schedule reminders for the giveaway
 
+        // Schedule the end of the giveaway after <durationMillis> milliseconds
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -44,7 +51,9 @@ public class GiveawayUtil {
         }, durationMillis);
     }
 
+    // Method is boolean to indicate if the giveaway was found and cancelled
     public static boolean cancelScheduledGiveawayEnd(GiveawayEntity giveaway) {
+        // Cancel the scheduled end for the giveaway and remove it from the map
         Timer timer = giveawayTimers.remove(giveaway.getMessageId());
         if (timer != null) {
             timer.cancel();
@@ -78,6 +87,8 @@ public class GiveawayUtil {
             textChannel.retrieveMessageById(messageId).queue(message -> message.reply(noEntriesMessage).queue());
             return;
         }
+
+        // small gimmick to show the winner/winners based on the number of winners
         String winnerText = giveaway.getNumberOfWinners() == 1 ? localizationUtil.getLocalizedMessage(guildId, "winner") : localizationUtil.getLocalizedMessage(guildId, "winners");
         StringBuilder winnerMessage = new StringBuilder(localizationUtil.getLocalizedMessage(guildId, "giveaway_winner_message").replace("{0}", updatedGiveaway.getTitle()) + " " + winnerText + ":\n");
         for (Long winnerId : winners) {

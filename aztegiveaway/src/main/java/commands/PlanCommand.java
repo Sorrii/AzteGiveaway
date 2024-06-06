@@ -1,18 +1,28 @@
+/**
+ * Class that handles the planning of a giveaway
+ * This command is used to schedule a giveaway for a future time
+ * Only users with the ADMINISTRATOR permission can use this command
+ * USAGE: /giveaway plan --start_time "time" --title "title" --prize "prize" --duration "duration" --winners "number" [--channel "channel"]
+ */
+
 package commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+
 import org.example.entities.GiveawayEntity;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import org.example.utils.DurationParser;
 import org.example.utils.EmbedUtil;
 import org.example.utils.GiveawayUtil;
@@ -25,7 +35,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 @Component
-public class PlanCommand extends ListenerAdapter {
+public class PlanCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlanCommand.class);
 
@@ -77,9 +87,9 @@ public class PlanCommand extends ListenerAdapter {
                 .map(OptionMapping::getAsInt)
                 .orElse(null);
 
-        // Initialize textChannel to null initially
         final TextChannel textChannel;
 
+        // Get the channel option if present, otherwise use the current channel
         if (event.getOption("channel") != null) {
             textChannel = Objects.requireNonNull(event.getOption("channel")).getAsChannel().asTextChannel();
         } else {
@@ -101,6 +111,11 @@ public class PlanCommand extends ListenerAdapter {
         // Parse start time and duration
         long startTimeMillis = DurationParser.parseDuration(startTimeStr);
         long durationMillis = DurationParser.parseDuration(durationStr);
+        if (startTimeMillis == 0 || durationMillis == 0) {
+            event.reply(localizationUtil.getLocalizedMessage(guildId, "invalid_duration_option")).setEphemeral(true).queue();
+            return;
+        }
+
         Instant startTime = Instant.now().plusMillis(startTimeMillis);
 
         // Create and save a new GiveawayEntity with messageId set to 0L initially
@@ -114,6 +129,7 @@ public class PlanCommand extends ListenerAdapter {
         giveaway.setMessageId(0L);
         giveaway.setGuildId(guildId);
 
+        // Save the giveaway to the database so that no other giveaway with the same title can be created before this one is started
         giveawayService.createGiveaway(giveaway);
         GiveawayUtil giveawayUtil = new GiveawayUtil(localizationUtil);
 

@@ -1,11 +1,20 @@
+/**
+ * Class that handles the slash commands
+ * Listener for slash commands
+ * This class is responsible for handling the slash commands and routing them to the appropriate command handler
+ */
+
 package commands;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import org.example.utils.LocalizationUtil;
 
 import java.util.Objects;
@@ -14,7 +23,6 @@ import java.util.Objects;
 public class SlashCommandListener extends ListenerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SlashCommandListener.class);
-
     private final GiveawayCommand giveawayCommand;
     private final RerollCommand rerollCommand;
     private final RollCommand rollCommand;

@@ -1,3 +1,12 @@
+/**
+ * Service class for managing giveaways.
+ * This class contains methods for creating, updating, deleting, and retrieving giveaways.
+ * It uses Transactional to ensure that a sequence of database operations are executed as a single unit of work.
+ * If any operation within the transaction fails, the entire transaction can be rolled back, maintaining data integrity.
+ * READ-ONLY transactions are used when the method only reads data from the database and does not modify it. ->
+ * -> The underlying database connection can be configured to be more efficient since no changes are expected.
+ */
+
 package org.example.services;
 
 import org.example.entities.GiveawayEntity;

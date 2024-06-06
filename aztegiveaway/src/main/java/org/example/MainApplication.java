@@ -64,6 +64,7 @@ public class MainApplication {
 
     @PostConstruct
     public void startBot() {
+        // Check if the bot token is set
         if (token == null || token.isEmpty()) {
             LOGGER.error("Bot token is not set in application.properties");
             return;

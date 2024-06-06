@@ -8,7 +8,6 @@
 package commands;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import org.example.entities.GiveawayEntity;
@@ -27,7 +26,7 @@ import java.text.MessageFormat;
 import java.util.Optional;
 
 @Component
-public class DeleteCommand extends ListenerAdapter {
+public class DeleteCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeleteCommand.class);
 

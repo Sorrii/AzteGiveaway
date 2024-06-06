@@ -1,19 +1,33 @@
+/**
+ * Class that handles the reroll command
+ * This command is used to reroll a giveaway and select new winners
+ * Only users with the ADMINISTRATOR permission can use this command
+ * You can reroll a new number of winners using this command
+ * If there are no eligible entries, the previous winners will be kept
+ * If the number of eligible entries is smaller than the number of winners, they will be the new winners
+ * USAGE: /giveaway reroll --giveaway_title "title" [--number_of_new_winners "number"]
+ */
+
 package commands;
 
 import org.example.entities.GiveawayEntity;
 import org.example.entities.WinnerEntity;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
+
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import jakarta.transaction.Transactional;
+
 import org.example.utils.FairRandomizer;
 import org.example.utils.LocalizationUtil;
-import jakarta.transaction.Transactional;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -21,13 +35,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-public class RerollCommand extends ListenerAdapter {
+public class RerollCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RerollCommand.class);
-
     private final GiveawayService giveawayService;
     private final WinnerService winnerService;
-
     private final LocalizationUtil localizationUtil;
 
     @Autowired
@@ -37,7 +49,7 @@ public class RerollCommand extends ListenerAdapter {
         this.localizationUtil = localizationUtil;
     }
 
-    @Transactional
+    @Transactional // Using this annotation to ensure that all db operations are done in a single transaction
     public void handleRerollCommand(SlashCommandInteractionEvent event) {
         // Ensure the guild is not null
         if (event.getGuild() == null) {

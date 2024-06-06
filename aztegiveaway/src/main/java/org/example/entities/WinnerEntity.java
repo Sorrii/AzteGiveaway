@@ -1,3 +1,13 @@
+/**
+ * This class represents the winner entity in the database.
+ * It contains the following columns:
+ * - id: the unique identifier of the winner
+ * - giveawayTitle: the title of the giveaway
+ * - giveawayMessageId: the message ID of the giveaway
+ * - guildId: the ID of the guild where the giveaway was hosted
+ * - userId: the ID of the user who won the giveaway
+ */
+
 package org.example.entities;
 
 import jakarta.persistence.*;
