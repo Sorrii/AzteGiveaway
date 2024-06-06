@@ -43,34 +43,36 @@ public class GiveawayService {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public GiveawayEntity getGiveawayByMessageId(Long messageId) {
-        return giveawayRepository.findByMessageId(messageId)
-                .map(giveaway -> {
-                    giveaway.getEntries().size(); // Initialize the collection
-                    return giveaway;
-                })
+        GiveawayEntity giveaway = giveawayRepository.findByMessageId(messageId)
                 .orElseGet(() -> {
                     LOGGER.warn("No giveaway found with message ID: {}", messageId);
                     return null;
                 });
+        if (giveaway != null) {
+            giveaway.getEntries().size(); // Initialize the collection
+        }
+        return giveaway;
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public GiveawayEntity getGiveawayByTitleAndGuildId(String title, Long guildId) {
-        return giveawayRepository.findByTitleAndGuildId(title, guildId)
-                .map(giveaway -> {
-                    giveaway.getEntries().size(); // Initialize the collection
-                    return giveaway;
-                })
+        GiveawayEntity giveaway = giveawayRepository.findByTitleAndGuildId(title, guildId)
                 .orElseGet(() -> {
                     LOGGER.warn("No giveaway found with title: {} in guild: {}", title, guildId);
                     return null;
                 });
+        if (giveaway != null) {
+            giveaway.getEntries().size(); // Initialize the collection
+        }
+        return giveaway;
     }
-
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<GiveawayEntity> getAllGiveaways() {
         List<GiveawayEntity> giveaways = giveawayRepository.findAll();
+        for (GiveawayEntity giveaway : giveaways) {
+            giveaway.getEntries().size(); // Initialize the collection
+        }
         if (giveaways.isEmpty()) {
             LOGGER.warn("No giveaways found.");
         }
@@ -93,22 +95,21 @@ public class GiveawayService {
             LOGGER.warn("Cannot update. Giveaway not found or null: {}", giveaway);
             return;
         }
-
         giveawayRepository.save(giveaway);
         LOGGER.info("Updated giveaway: {}", giveaway);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<Long> getGiveawayEntries(Long giveawayId) {
-        return giveawayRepository.findById(giveawayId)
-                .map(giveaway -> {
-                    List<Long> entries = giveaway.getEntries();
-                    entries.size(); // Initialize the collection
-                    return entries;
-                })
+        GiveawayEntity giveaway = giveawayRepository.findById(giveawayId)
                 .orElseGet(() -> {
                     LOGGER.warn("No giveaway found with ID: {}", giveawayId);
                     return null;
                 });
+        if (giveaway != null) {
+            giveaway.getEntries().size(); // Initialize the collection
+        }
+        return giveaway != null ? giveaway.getEntries() : null;
     }
 }
+

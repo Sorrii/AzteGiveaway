@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import org.example.entities.GiveawayEntity;
+import org.example.entities.WinnerEntity;
 import org.example.services.GiveawayService;
 import org.example.services.WinnerService;
 
@@ -37,6 +38,11 @@ public class RescheduleUtil {
         GiveawayUtil giveawayUtil = new GiveawayUtil(localizationUtil);
 
         for (GiveawayEntity giveaway : activeGiveaways) {
+            if (hasGiveawayEnded(giveaway)) {
+                LOGGER.info("Giveaway {} has already ended. Skipping reschedule.", giveaway.getTitle());
+                continue;
+            }
+
             long currentTime = Instant.now().toEpochMilli();
             long startTime = giveaway.getStartTime().toEpochMilli();
             long remainingTime = giveaway.getDuration() - (currentTime - startTime);
@@ -47,9 +53,16 @@ public class RescheduleUtil {
                 giveawayUtil.scheduleGiveawayEnd(giveaway, jda, giveawayService, winnerService, remainingTime);
                 LOGGER.info("Rescheduled giveaway {} with remaining time {} ms", giveaway.getTitle(), remainingTime);
             } else {
+                // Handle ended giveaways gracefully
+                giveaway.getEntries().size(); // Initialize the collection
                 giveawayUtil.endGiveaway(giveaway, jda, giveaway.getMessageId(), giveawayService, winnerService);
             }
         }
+    }
+
+    private boolean hasGiveawayEnded(GiveawayEntity giveaway) {
+        List<WinnerEntity> winners = winnerService.getWinnersByGiveawayMessageIdAndGuildId(giveaway.getMessageId(), giveaway.getGuildId());
+        return !winners.isEmpty();
     }
 
     private void scheduleFutureGiveaway(GiveawayEntity giveaway, long startTime, long currentTime, GiveawayUtil giveawayUtil) {
