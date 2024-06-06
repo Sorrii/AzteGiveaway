@@ -23,25 +23,16 @@ public class WinnerService {
     public void addWinner(WinnerEntity winner) {
         winnerRepository.save(winner);
     }
-    @Transactional(propagation = Propagation.REQUIRED)
-    public List<WinnerEntity> addWinners(List<WinnerEntity> winners) {
-        return winnerRepository.saveAll(winners);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
-    public List<WinnerEntity> getAllWinners() {
-        return winnerRepository.findAll();
-    }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<WinnerEntity> getWinnersByGuildId(Long guildId) {
         return winnerRepository.findByGuildId(guildId);
     }
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public List<WinnerEntity> getWinnersByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId) {
         return winnerRepository.findByGiveawayMessageIdAndGuildId(giveawayMessageId, guildId);
     }
-
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true, noRollbackFor = Exception.class)
     public void deleteWinnersByGiveawayMessageIdAndGuildId(Long giveawayMessageId, Long guildId) {

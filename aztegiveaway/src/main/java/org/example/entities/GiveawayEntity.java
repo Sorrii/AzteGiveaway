@@ -72,6 +72,10 @@ public class GiveawayEntity {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public long getMessageId() {
         return messageId;
     }
@@ -144,5 +148,11 @@ public class GiveawayEntity {
 
     public List<Long> getEntries() {
         return entries;
+    }
+
+    // used for testing
+    public void setEntries(List<Long> entries) {
+        this.entries.clear();
+        this.entries.addAll(entries);
     }
 }
