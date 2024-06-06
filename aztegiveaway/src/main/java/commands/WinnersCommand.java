@@ -106,6 +106,7 @@ public class WinnersCommand extends ListenerAdapter { // it is not necessary to 
             event.reply(winnerMessage.toString()).queue();
             LOGGER.info("Winners for giveaway {}: {}", title, winnerMessage);
         } else {
+            LOGGER.warn("Missing required options for winners command.");
             event.reply(localizationUtil.getLocalizedMessage(guildId, "missing_required_options_winners_command")).setEphemeral(true).queue();
         }
     }
@@ -114,7 +115,10 @@ public class WinnersCommand extends ListenerAdapter { // it is not necessary to 
     // It embeds 5 winners per page and adds reaction buttons to navigate through the pages
     // The method listens for reaction events and updates the embed accordingly (that's why it extends ListenerAdapter)
     private void sendPaginatedEmbed(SlashCommandInteractionEvent event, List<EmbedBuilder> embeds) {
-        if (embeds.isEmpty()) return;
+        if (embeds.isEmpty()) {
+            LOGGER.warn("No embeds to send.");
+            return;
+        }
 
         event.replyEmbeds(embeds.get(0).build()).queue(response -> {
             if (embeds.size() > 1) {
@@ -126,8 +130,6 @@ public class WinnersCommand extends ListenerAdapter { // it is not necessary to 
             }
         });
     }
-
-
 
     private void handleReactions(SlashCommandInteractionEvent event, Message message, List<EmbedBuilder> embeds) {
         final int[] currentPage = {0};

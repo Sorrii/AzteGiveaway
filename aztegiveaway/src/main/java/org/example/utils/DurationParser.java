@@ -19,7 +19,7 @@ public class DurationParser {
 
     public static long parseDuration(String durationStr) {
         // Double-checking never hurts
-        if (durationStr == null || durationStr.trim().isEmpty()) {
+        if (durationStr == null || durationStr.isBlank()) {
             return 0;
         }
 
@@ -30,13 +30,13 @@ public class DurationParser {
             int value = Integer.parseInt(matcher.group(1));
             String unit = matcher.group(2);
 
-            switch (unit) {
-                case "d" -> totalMillis += Duration.ofDays(value).toMillis();
-                case "h" -> totalMillis += Duration.ofHours(value).toMillis();
-                case "m" -> totalMillis += Duration.ofMinutes(value).toMillis();
-                case "s" -> totalMillis += Duration.ofSeconds(value).toMillis();
-                default -> totalMillis += 0; // Ignore unknown units and return 0 for simplicity. Error handling is done in the caller.
-            }
+            totalMillis += switch (matcher.group(2)) {
+                case "d" -> Duration.ofDays(value).toMillis();
+                case "h" -> Duration.ofHours(value).toMillis();
+                case "m" -> Duration.ofMinutes(value).toMillis();
+                case "s" -> Duration.ofSeconds(value).toMillis();
+                default -> 0;
+            };
         }
 
         return totalMillis;

@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.List;
 
@@ -38,10 +39,20 @@ class GiveawayServiceTest {
     @Test
     void testGetGiveawayByMessageId() {
         GiveawayEntity giveaway = new GiveawayEntity();
-        when(giveawayRepository.findByMessageId(1L)).thenReturn(giveaway);
+        when(giveawayRepository.findByMessageId(1L)).thenReturn(Optional.of(giveaway));
 
         GiveawayEntity result = giveawayService.getGiveawayByMessageId(1L);
         assertNotNull(result);
+        assertEquals(giveaway, result);
+        verify(giveawayRepository, times(1)).findByMessageId(1L);
+    }
+
+    @Test
+    void testGetGiveawayByMessageId_NotFound() {
+        when(giveawayRepository.findByMessageId(1L)).thenReturn(Optional.empty());
+
+        GiveawayEntity result = giveawayService.getGiveawayByMessageId(1L);
+        assertNull(result, "Giveaway should be null when not found");
         verify(giveawayRepository, times(1)).findByMessageId(1L);
     }
 
@@ -52,6 +63,16 @@ class GiveawayServiceTest {
 
         List<GiveawayEntity> result = giveawayService.getAllGiveaways();
         assertEquals(2, result.size());
+        assertIterableEquals(giveaways, result);
+        verify(giveawayRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testGetAllGiveaways_Empty() {
+        when(giveawayRepository.findAll()).thenReturn(new ArrayList<>());
+
+        List<GiveawayEntity> result = giveawayService.getAllGiveaways();
+        assertTrue(result.isEmpty(), "Giveaways list should be empty when no giveaways are found");
         verify(giveawayRepository, times(1)).findAll();
     }
 
@@ -62,6 +83,14 @@ class GiveawayServiceTest {
 
         giveawayService.deleteGiveaway(1L);
         verify(giveawayRepository, times(1)).deleteById(1L);
+    }
+
+    @Test
+    void testDeleteGiveaway_NotFound() {
+        when(giveawayRepository.existsById(1L)).thenReturn(false);
+
+        giveawayService.deleteGiveaway(1L);
+        verify(giveawayRepository, times(0)).deleteById(1L);
     }
 
     @Test

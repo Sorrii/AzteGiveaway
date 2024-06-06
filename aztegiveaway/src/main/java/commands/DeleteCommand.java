@@ -67,7 +67,7 @@ public class DeleteCommand {
             return;
         }
 
-        // Delete the giveaway
+        // Retrieve the giveaway by title and guild ID
         GiveawayEntity giveaway = giveawayService.getGiveawayByTitleAndGuildId(title, guildId);
         if (giveaway == null) {
             LOGGER.warn("Giveaway with title {} not found in the database", title);
@@ -77,6 +77,7 @@ public class DeleteCommand {
         // Cancel the scheduled end for the giveaway
         GiveawayUtil.cancelScheduledGiveawayEnd(giveaway);
 
+        // Delete the giveaway from the database
         giveawayService.deleteGiveaway(giveaway.getId());
         event.reply(MessageFormat.format(localizationUtil.getLocalizedMessage(guildId, "giveaway_deleted"), title)).setEphemeral(true).queue();
         LOGGER.info("Giveaway with title {} has been deleted from the database.", title);
