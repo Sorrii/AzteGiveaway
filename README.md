@@ -10,7 +10,7 @@ AzteGiveaway Bot is a Discord bot designed to create and manage giveaways in Dis
 - User Participation: Users can enter giveaways by reacting with a specified emoji.  
 - Single Entry: Each user can enter a giveaway only once.  
 - Automatic Winner Selection: Winners are automatically selected when the giveaway ends.  
-- Database Integration: Store giveaway entries, winners, and preferences in a PostgreSQL database.  
+- Database Integration: Store giveaway entries, winners, and preferences in a MySql database.  
 - Localization: Supports multiple languages.    
 
 ## Prerequisites  
